@@ -1,0 +1,2190 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset=utf-8>
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="initial-scale=1.0, width=device-width">
+  <meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests">
+  <meta property="og:type" content="website">
+  <link rel="stylesheet" href="/webdemo/gis119wei/lib/css/ol6.5.0.css" type="text/css">
+  <link rel="stylesheet" href="/webdemo/gis119wei/fonts/style.css">
+
+  <!-- ol ext -->
+  <link rel="stylesheet" href="/webdemo/gis119wei/lib/css/ol-ext.css">
+
+  <title>119</title>
+
+  <style>
+
+    /* 滾動條 */
+    ::-webkit-scrollbar {width: 5px;height: 5px;}
+    ::-webkit-scrollbar-button {background: transparent;border-radius: 4px;}
+    ::-webkit-scrollbar-track-piece {background: transparent;}
+    ::-webkit-scrollbar-thumb {border-radius: 4px;background-color: rgba(0, 0, 0, 0.4);border: 1px solid slategrey;}
+    ::-webkit-scrollbar-track {box-shadow: transparent;}
+
+    html,body{padding: 0;margin: 0;width: 100vw;height: 100vh;overflow: hidden;}
+    #map{width: 100%;height: 100%;}
+    .sidebar *{position: relative; user-select: none;}
+    .sidebar {position: absolute;width: 290px;left: 10px;top: 30px;background-color: #131313ab;box-shadow: 0px 2px 4px #000;transition: .2s;}
+    /* .sidebar input:checked ~ .content {height: 500px;padding-top: 10px;} */
+    .sidebar input:checked ~ .content {height: 500px;padding-top: 10px;}
+    .sidebar input:checked ~ #overlaycontent {height: 440px;padding-top: 10px;}
+    .sidebar input:checked ~ #weathercontent {height: 200px;padding-top: 10px;}
+    .sidebar input:checked ~ #emiccontent {height: 320px;padding-top: 10px;}
+    .sidebar input:checked ~ #floodcontent {height: 210px;padding-top: 10px;}
+    .sidebar input:checked ~ #toolscontent {height: 120px;padding-top: 10px;}
+    .sidebar input:checked ~ #mapcontent {height: 250px;padding-top: 10px;}
+    .sidebar input:checked ~ .fa-chevron-down {transform: rotate(180deg);}
+    .sidebar .collapse input {position: absolute;opacity: 0;top: 0;left: 0;}
+    .sidebar label{cursor: pointer;display: block;color: white;text-shadow: 0px 2px 3px #000;font-size: 25px;}
+    .sidebar .fa-chevron-down {position: absolute;right: 20px;top: 17px;font-size: 16px;transition: .2s linear;}
+    .sidebar .content {transition: .2s ease-in;width: 100%;height: 0px;overflow: hidden;padding: 0px 10px;box-sizing: border-box;display: flex;flex-wrap: wrap;align-content: flex-start;}
+    .sidebar .collapse {position: relative;width: 100%;border-bottom: 1px solid rgba(0,0,0,0.3);}
+    .sidebar .content img{width: 50px;height: 50px;}
+    .sidebar .title{ background-color: rgb(59 59 59);padding: 5px 10px;font-size: 25px;font-family: '微軟正黑體';font-weight: bold;display: flex; justify-content: space-between;align-items: center;}
+    .sidebar .item {border:2px solid rgb(217, 217, 217);border-radius: 5px;/*padding: 3px;*/margin: 3px;transition: .3s;cursor: pointer;}
+    .sidebar .content .item:hover{background-color: rgb(226, 226, 226);box-shadow: 0px 2px 3px #000;top: -2px;}
+    .sidebar .collapse>label:hover{background-color: #fff; color: black;text-shadow: 0px 0px 2px #000;}
+    /*  */
+    .iconContent{display: flex;align-items: center;justify-content: space-between;}
+    .iconContent .name{display: none;}
+
+    @media screen and (max-width: 1200px) {
+      .sidebar {width: 180px;}
+      .sidebar input:checked ~ #mapcontent{overflow-y: scroll;}
+    }
+
+
+    /* switch button */
+    .switch {position: relative;display: inline-block;width: 55px;height: 28px;}
+    .switch input { opacity: 0;width: 0;height: 0;}
+    .slider {position: absolute;cursor: pointer;top: 0;left: 0;right: 0;bottom: 0;background-color: #ccc;-webkit-transition: .4s;transition: .4s;}
+    .slider:before {position: absolute;content: "";height: 20px;width: 20px;left: 4px;bottom: 4px;background-color: white;-webkit-transition: .4s;transition: .4s;}
+    input:checked + .slider {background-color: #008cff;}
+    input:focus + .slider {box-shadow: 0 0 1px #2196F3;}
+    input:checked + .slider:before {-webkit-transform: translateX(26px);-ms-transform: translateX(26px);transform: translateX(26px);}
+    /* Rounded sliders */
+    .slider.round {border-radius: 34px;}
+    .slider.round:before {border-radius: 50%;}
+
+
+    /* tooltips */
+    .item .tooltiptext {visibility: hidden;width: 120px;background-color: black;color: #fff;text-align: center;border-radius: 6px;padding: 5px 0;position: absolute;z-index: 1;top: 15px;left: 115%;}
+    .item .tooltiptext::after {content: "";position: absolute;top: 50%;right: 100%;margin-top: -5px;border-width: 5px;border-style: solid;border-color: transparent black transparent transparent;}
+    /* .item:hover .tooltiptext {visibility: visible;} */
+    .item input:checked + .iconContent{background-color: rgb(232, 232, 232); transition-delay: 250ms}
+
+    /* title side */
+    .collapse>.collapsetooltiptext {visibility: hidden;width: 160px;background-color: black;color: #fff;text-align: center;border-radius: 6px;padding: 5px 0;position: absolute;z-index: 1;top: 0px;left: 102%;font-size: 25px;}
+    .collapse>.collapsetooltiptext::after {content: "";position: absolute;top: 50%;right: 100%;margin-top: -5px;border-width: 5px;border-style: solid;border-color: transparent black transparent transparent;}
+    /* .collapse:hover>.collapsetooltiptext {visibility: visible;} */
+    .collapse:hover>.collapsetooltiptext {visibility:hidden}
+    .collapse input:checked + .iconContent{background-color: rgb(232, 232, 232); transition-delay: 250ms}
+    .collapse i{font-size: 30px;}
+
+    /* 地圖工具 */
+    #toolscontent{width: 100%;}
+    #toolscontent .toolItem{display: inline-block;}
+    #toolscontent input{position: relative;display: none;}
+    #toolscontent label{padding: 3px;font-size: 25px;cursor: pointer;margin-right: 5px;font-family: '微軟正黑體';width: 100%;}
+    #toolscontent label:hover{background-color: rgb(48, 48, 48); color: white;font-weight:bolder;}
+    #toolscontent label {display: flex;align-items: center;justify-content: center;}
+    #toolscontent label i{display: none}
+    #toolscontent .title{background-color: rgba(0, 0, 0, 0);}
+    @media screen and (max-width: 1200px)  {
+      .sidebar input:checked ~ #overlaycontent {height: 250px;}
+      .sidebar input:checked ~ #weathercontent {height: 250px;}
+      .sidebar input:checked ~ #emiccontent {height: 250px;}
+      .sidebar input:checked ~ #toolscontent {height: 210px;}
+      .sidebar input:checked ~ #floodcontent {height: 230px;}
+      #toolscontent button{font-size: 20px;}
+      #toolscontent label {display: flex;align-items: center;justify-content: space-between;}
+      #toolscontent .toolItem{width: 100%;}
+      #toolscontent label i{display: block}
+    }
+
+    /* 底圖 */
+    #mapcontent .title{justify-content: center;}
+
+    /* quick btn START */
+
+    .quickLayer-grid{width: 50px;height: 50px;background-color: rgb(88 88 88 / 78%);border-radius: 10px;border: 2px solid rgb(219, 219, 219);color: white;font-size: 32px;font-family: sans-serif;display: flex;justify-content: center;align-items: center;cursor: pointer;box-shadow: 0px 2px 2px #000;margin-left: 5px;}
+    /* quick btn END */
+
+    #movepopup{position:absolute;/*background-color:white;*/text-align:center;width:90px;left:50%;bottom:150%;margin-bottom:10px;/*padding:3px;*/margin-left:-45px;/*border-radius:4px;border-width:1px;border-style:solid;*/z-index:10;font-size: 20px;font-family: '微軟正黑體';}
+    .ol-popup {position: absolute;background-color: white;box-shadow: 0 1px 4px rgba(0,0,0,0.2);padding: 15px;border-radius: 10px;border: 1px solid #cccccc;bottom: 12px;left: -50px;min-width: 200px;}
+    .ol-popup:after, .ol-popup:before {top: 100%;border: solid transparent;content: " ";height: 0;width: 0;position: absolute;pointer-events: none;}
+    .ol-popup:after {border-top-color: white;border-width: 10px;left: 48px;margin-left: -10px;}
+    .ol-popup:before {border-top-color: #cccccc;border-width: 11px;left: 48px;margin-left: -11px;}
+    .ol-popup-closer {text-decoration: none;position: absolute;top: 2px;right: 8px;}
+    .ol-popup-closer:after {content: "✖";}
+    #popup-content{max-height: 300px; max-width: 350px; overflow-y: scroll;text-align: center;}
+
+    /* 右鍵選單 */
+    .context-menu {position: absolute;text-align: center;background: rgb(255, 255, 255);border-radius: 5px;box-shadow: 0px 0px 3px #000;}
+    .context-menu ul {padding: 0px;margin: 0px;min-width: 150px;list-style: none;}
+    .context-menu ul li {cursor: pointer;text-align: left;padding: 5px;}
+    .context-menu ul li a {text-decoration: none;color: black;font-weight: bolder;font-size: 20px;}
+    .context-menu ul li:hover {background: rgb(0 149 255);}
+    .context-menu ul li:hover > a{color: white;}
+
+    /* 座標 */
+    .coord{position: absolute;border: 1px solid #000;width: 450px;bottom: -100px;left: 50%;transform: translate(-50%, 0px);background-color: #131313ab;color: white;font-size: 25px;padding: 5px;box-sizing: border-box;font-family: '微軟正黑體';border-radius: 5px;box-shadow: 0px 1px 1px #000;transition: .3s;}
+    .coord .selectRow{width: 100%;display: flex;}
+    .coord select{width: 40%;font-size: 25px;margin-right: 2px; margin-left: 2px;}
+    .coord button{width: 20%;font-size: 20px;padding: 0;margin: 0;font-weight: bold;background: #eaeaea;color: #0d0d0d;box-shadow: 0px 1px 1px #000;border: none;margin-left: 2px;cursor: pointer;}
+    .coord .diffType{width: 35%;}
+    .coord .diffCoord{width: 45%;}
+    .coord button:hover{background-color: rgb(241, 115, 115);color: white;}
+    .coord .cals{font-size: 30px;text-align: center;}
+    .coord .ol-mouse-position{position: relative;top: 0; right: 0;}
+
+    /* 載入中 */
+    .loadingBlock{width: 100vw;height: 100vh;position: absolute;top: 0;background: #0000004f;z-index: 1000000;display: none;align-content: center;justify-content: center;align-items: center;font-size: 50px;color: white;font-weight: bold;}
+
+    /* 繪圖工具 */
+    .drawBox{border: 1px solid #000000c7;position: absolute;left: 50%;transform: translate(-50%, 0px);bottom: -200px;background: #000000de;width: 280px;height: 80px;display: flex;flex-direction: column;align-items: center;padding: 5px;box-sizing: border-box;box-shadow: 0px 0px 5px #000;border-radius: 5px; transition: .2s; }
+    .drawBox .title{color: white; font-size: 25px;}
+    .drawBox .colorRadio{width: 25px; height: 25px; cursor: pointer;appearance: none;-webkit-appearance: none;border-radius: 50%;border: 7px solid rgb(59, 59, 59); transition: .3s;}
+    .drawBox input[type=radio]:checked {border: none;}
+
+    /* 截圖工具 */
+    .takePicBox{border: 1px solid #000000c7;position: absolute;left: 50%;transform: translate(-50%, 0px);bottom: -100px;background: #000000de;width: 350px;height: 80px;display: flex;flex-direction: column;align-items: center;padding: 8px;box-sizing: border-box;box-shadow: 0px 0px 5px #000;border-radius: 5px; transition: .2s; }
+    .takePicBox .typeBox{display: flex;justify-content: space-evenly;width: 100%;}
+    .takePicBox .title{color: white; font-size: 25px;}
+    .takePicBox button {font-size: 20px;cursor: pointer;border-radius: 3px;border: none;}
+    .takePicBox button:hover{background-color: rgb(152, 152, 152);color: white;}
+
+    /* 淹水資訊 */
+    /* #floodcontent.content{align-content: space-around;} */
+    #floodcontent select,#floodcontent span{font-size: 30px;}
+    #floodcontent .selectedBox{display: flex;}
+    #floodcontent span{color: white;}
+
+    /* 淹水資訊 input switch style */
+    #floodcontent .title {width: 100%;background: none;color: white;padding: 0;}
+    #floodcontent.content input[type=checkbox]{height: 0;width: 0;visibility: hidden;}
+    #floodcontent.content label {cursor: pointer;width: 70px;height: 40px;background: grey;display: block;border-radius: 100px;position: relative;}
+    #floodcontent.content .switch-txt{display: block; width: 100%;height: 100%;}
+    #floodcontent.content label:after {content: '';position: absolute;top: 5px;left: 5px;width: 30px;height: 30px;background: #fff;border-radius: 90px;transition: 0.3s;max-width: 30px;}
+    #floodcontent.content .switch-txt::before,.switch-txt::after {display: block;color: #fff;font-weight: bold;box-sizing: border-box;}
+    /* #floodcontent.content .switch-txt::before {content: attr(turnOn);color: #fff;width: 50%;position: absolute;left: 8px;top: 50%;transform: translate(0px, -50%);font-size: 20px;} */
+    /* #floodcontent.content .switch-txt::after {content: attr(turnOff);color: #ccc;    width: 50%;position: absolute;right: 8px;top: 50%;transform: translate(0px, -50%);font-size: 20px;text-align: right;} */
+    /* 切換顏色 */
+    #floodcontent.content input:checked + label {background: #1700e5;}
+    #floodcontent.content label:active:after {width: 130px;}
+    #floodcontent.content input:checked + label:after {left: calc(100% - 5px);transform: translateX(-100%);}
+    @media screen and (max-width: 1200px)  {
+      #floodcontent{padding: 0 5px;}
+      #floodcontent select, #floodcontent span{font-size: 25px;}
+      #floodcontent .selectedBox{flex-direction: column;}
+      #floodcontent select{width: 65%;}
+      #floodcontent.content label{width: 55px;height: 30px;}
+      #floodcontent.content label:after{width: 20px;height: 20px;}
+    }
+
+    /* 比例尺scale bar */
+    .ol-scale-line-inner{font-size: 22px;font-family: '微軟正黑體';min-width: 100px;}
+    .ol-scale-line.ol-unselectable{background-color: rgba(0, 0, 0, 0.63);}
+
+    /* 放大縮小 */
+    .ol-zoom{left: auto;top:auto;right: 8px;bottom: 70px;}
+    .ol-zoom button{background-color: rgba(0, 0, 0, 0.7);cursor: pointer;transition: 0.2s;}
+    .ol-zoom button:hover{background-color: rgba(219, 17, 17, 0.7);}
+    .ol-zoom button:focus{background-color: rgba(255, 0, 0, 0.7);}
+
+    /* 案件列表 */
+    /* .caselist{position: absolute;top: 50px;right: 10px;border: 1px solid black;width: 200px;height: 500px;background-color: rgb(88, 88, 88);} */
+
+    /* cctv box */
+    .cctvBox{height: 100vh; width: 350px;position: absolute; left: -400px;top: 0;background-color: #000000f2;transition: .3s;padding: 10px 5px;box-sizing: border-box;font-family: '微軟正黑體';}
+    .cctvBox .close{font-size: 30px;color: white;position: absolute;right: -20px;background: #c10202;padding: 5px;border-radius: 100%;width: 30px;height: 30px;top: 10px;display: flex;justify-content: center;align-items: center;cursor: pointer;}
+    .cctvBox .close:hover{background-color: #f90f0f;}
+    .cctvBox .title{color: white; font-size: 25px; padding: 0px 10px;}
+    .cctvBox a {color: rgb(255, 64, 64);}
+
+    /* popupTable */
+    /* .popupTable{padding:2px;margin-left:5px;}
+    .popupTable table,.popupTable td {border:1px solid #333;font-size:20px;font-family:'微軟正黑體';user-select:text;background-color: white;}
+    .popupTable thead,.popupTable tfoot{background-color:#333;color:#fff;}
+    .smallpopupTable{font-size:14px;font-family:"微軟正黑體";text-align:left;padding-left:5px;padding-right:5px;}.smallpopupTable b{display:inline-block;vertical-align:top;} */
+    /* popupTable */
+    .popupTable{box-shadow: 2px 2px 2px #00000096;border-radius: 5px;}
+    .popupTable table{border:1px solid #333;font-size:20px;font-family:'微軟正黑體';user-select:text; border-radius: 5px;background: white;}
+    .popupTable td {border:0px solid #333;font-size:18px;font-family:'微軟正黑體';user-select:text;/*vertical-align:middle;text-align: center;*/}
+    .popupTable thead{background-color:#2F5597;color:#fff; width: calc(100%-1em);}
+    .popupTable tfoot{background-color:#2F5597;color:#fff;}
+    .popupTable tr{table-layout: fixed;}
+
+    /* popup可調整 */
+    .popupTable .td1{font-weight: bold;}
+    .popupTable .td2{background-color: #E7E6E6;}
+    .popupTable .td3{height: 80px;overflow-y: scroll;}/* 大框 */
+    .popupTable .td4{font-size: 17px;}
+
+    /* 暫時 */
+    .ol-zoom.ol-unselectable.ol-control{display: none;}
+    .ol-print.ol-unselectable.ol-control{display: none;}
+
+    /* 案件列表 */
+    .caseListBox{position: absolute;top: 5px;right: 40px;}
+    .caseListBox .inputBox{display: flex;align-items: center;background: white;margin-bottom: 2px;border-radius: 5px;padding: 0px 5px;height: 35px;border: 2px solid #00B4CC;position: relative;}
+    .caseListBox input{border: none;font-size: 1vw;height: 100%;box-sizing: border-box;outline: none;}
+    .caseListBox i{padding: 5px;font-size: 1.25vw;}
+    .caseListBox button{position: absolute;right: 0px;height:100%;border: none;background: #00B4CC;box-shadow: none;font-size: 1vw;display: flex;align-items: center;cursor: pointer;font-weight: bolder;}
+    .caseListBox button i {font-size: 16px;}
+    .caseTypeList{position: absolute;display: none;flex-direction: column;background: white;top: calc(100% + 5px);right: 0px;border-radius: 5px;box-shadow: 1px 1px 1px black;border: 2px solid black;}
+    .caseTypeList .type{border-bottom: 1px solid;font-size: 22px;padding: 0px 5px; user-select: none;display: flex;align-items: center}
+    .caseTypeList .type img{height: 25px;}
+    .caseTypeList .type:hover{background-color: black; color: white;cursor: pointer;}
+    #caselist {z-index: 14;background-color: rgba(0, 0, 0, 0.721);padding: 5px;font-size: 1.05vw;user-select: text;border: 2px solid #ffffff;border-radius: 5px;box-shadow: 3px 3px 0px #545454;word-wrap: break-word;padding-right: 10px;transition: margin-right 0.5s; color: white;height: 80vh;width: 100%;box-sizing: border-box;}
+    #caseListTable{z-index: 10;}
+    #caseListTable td{border-bottom: 1px solid rgb(255, 255, 255)}
+    #caseListTable td:hover{background-color: #fff;color: black;cursor: pointer;}
+    #caseListTable .caseSelected{background-color: red;}
+    .tableBox {overflow-y: auto;width: 18vw;height: 100%;}
+
+  </style>
+</head>
+<body>
+<script src="/webdemo/gis119wei/lib/js/jquery-3.6.0.min.js"></script>  
+<script src="/webdemo/gis119wei/lib/js/html2canvas1.3.2.min.js"></script>
+<script type=text/javascript src="/static/js/ol6.5.0.js"></script>
+<script src="/webdemo/gis119wei/lib/js/ol-ext.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/proj4js/2.8.0/proj4.js"></script>
+<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/1.3.2/jspdf.min.js"></script>
+<script type="text/javascript" src="https://cdn.rawgit.com/eligrey/FileSaver.js/aa9f4e0e/FileSaver.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/print-js/1.6.0/print.js"></script>
+
+<!-- dom START -->
+<div id="map">
+  <div id="movepopup"></div>
+  <div id="popup" class="ol-popup">
+    <a href="#" id="popup-closer" class="ol-popup-closer"></a>
+    <div id="popup-content"></div>
+  </div>
+</div>
+<div id="printElement"></div>
+
+<label onclick="window.location.href='https://bot.mds.com.tw/rescue/gotoweb119'" style="user-select: none;">
+  <!-- <input type="checkbox" id="sideBarChk" style="display: none;"> -->
+  <i class="mds-left-solid-arrow KUOrot-180deg" style="cursor:pointer;font-size:28px;position:absolute;top: 5px;left:10px;z-index:20;height:28px;color:#000000;text-shadow:1px 2px #494949;"></i>
+</label>
+<div class="sidebar">
+  <section class="collapse">
+    <label for="overlay" class="title">圖層套疊<i class="mds-layer"></i></label>
+    <input type="checkbox" id="overlay" onchange="toggleCollapse(this, this.checked)">
+    <div id="overlaycontent" class="content"></div>
+    <span class="collapsetooltiptext"></span>
+  </section>
+  <section class="collapse">
+    <label for="weatheroverlay" class="title">環境資訊<i class='mds-wind'></i></label>
+    <input type="checkbox" id="weatheroverlay" onchange="toggleCollapse(this, this.checked)">
+    <div id="weathercontent" class="content"></div>
+    <span class="collapsetooltiptext"></span>
+  </section>
+  <section class="collapse">
+    <label for="emicoverlay" class="title">EMIC<i class="mds-cube"></i></label>
+    <input type="checkbox" id="emicoverlay" onchange="toggleCollapse(this, this.checked)">
+    <div id="emiccontent" class="content"></div>
+    <span class="collapsetooltiptext"></span>
+  </section>
+  <!-- <section class="collapse">
+    <label for="floodPotential" class="title">淹水潛勢<i class="fas fa-tint"></i></label>
+    <input type="checkbox" id="floodPotential" onchange="toggleCollapse(this, this.checked)">
+    <div id="toolscontent" class="content"></div>
+  </section> -->
+  <section class="collapse">
+    <label for="qpeFlood" class="title">淹水資訊<i class="mds-wave"></i></label>
+    <input type="checkbox" id="qpeFlood" onchange="toggleCollapse(this, this.checked)">
+    <div id="floodcontent" class="content">
+      <div class="floodItem">
+        <div class="title">
+          淹水潛勢
+          <input type="checkbox" id="switch-flood" onchange="getfloodpotential(this.checked)" />
+          <label for="switch-flood">
+            <span class="switch-txt" turnOn="On" turnOff="Off"></span>
+          </label>
+        </div>
+        <div class="selectedBox">
+          <div class="hourBox">
+            <select name="" id="floodpothr" onchange="checkfloodpotOption()">
+              <option value="6">6</option>
+              <option value="12">12</option>
+              <option value="24">24</option>
+            </select>
+            <span>小時</span>
+          </div>
+          <div class="mmBox">
+            <select name="" id="floodpotmm" onchange="getfloodpotential(document.getElementById('switch-flood').checked)">
+              <option value="150">150</option>
+              <option value="150">250</option>
+              <option value="150">350</option>
+            </select>
+            <span>毫米</span>
+          </div>
+        </div>
+      </div>
+      <div class="floodItem" style="margin-top: 5px">
+        <div class="title">
+          定量降雨
+          <input type="checkbox" id="switch-qpe" onchange="getqpeflood(this.checked)" />
+          <label for="switch-qpe">
+            <span class="switch-txt" turnOn="On" turnOff="Off"></span>
+          </label>
+        </div>
+        <div class="selectedBox">
+          <div class="hourBox">
+            <select name="" id="qpefloodhr" onchange="checkQpeOption();">
+              <option value="6">6</option>
+              <option value="12">12</option>
+              <option value="24">24</option>
+            </select>
+            <span>小時</span>
+          </div>
+          <div class="mmBox">
+            <select name="" id="qpefloodmm" onchange="getqpeflood(document.getElementById('switch-qpe').checked);">
+              <option value="10">10</option>
+              <option value="150">150</option>
+              <option value="250">250</option>
+              <option value="350">350</option>
+            </select>
+            <span>毫米</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+  <section class="collapse">
+    <label for="maptools" class="title">地圖工具<i class="mds-tool"></i></label>
+    <input type="checkbox" id="maptools" onchange="toggleCollapse(this, this.checked)">
+    <div id="toolscontent" class="content">
+      <div class="toolItem">
+        <label>
+          <i class="fas fa-map-marker-alt"></i>
+          <div class="title" onclick="switchCoord()">座標對照</div>
+          <input type="checkbox">
+        </label>
+      </div>
+      <div class="toolItem">
+        <label>
+          <i class="fas fa-ruler"></i>
+          <div class="title">測量工具</div>
+          <input type="checkbox" onchange="toggleMeasure(this.checked,this);" >
+        </label>
+      </div>
+      <div class="toolItem" >
+        <label>
+          <i class="fas fa-pen"></i>
+          <div class="title">繪圖工具</div>
+          <input type="checkbox" onclick="toggleFreehand(this.checked)">
+        </label>
+      </div>
+      <div class="toolItem">
+        <label>
+          <i class="fas fa-images"></i>
+          <div class="title">截圖工具</div>
+          <input type="checkbox" onchange="switchTakePicBox(this.checked)">
+        </label>
+      </div>
+    </div>
+  </section>
+  <section class="collapse">
+    <label for="mapoverlay" class="title">底圖切換<i class="mds-map"></i></label>
+    <input type="checkbox" id="mapoverlay" onchange="toggleCollapse(this, this.checked)">
+    <div id="mapcontent" class="content"></div>
+    <span class="collapsetooltiptext"></span>
+  </section>
+</div>
+
+<div id="quickLayerTitle" style="position: absolute;"></div>
+<div class="quickLayer" style="position: absolute;bottom: 10px;right: 10px; display:flex;">
+</div>
+
+<!-- 右鍵選單 -->
+<div id="contextMenu" class="context-menu" style="display:none">
+  <ul>
+    <li onclick="setZoomLevel('in')"><a href="#">放大</a></li>
+    <li onclick="setZoomLevel('out')"><a href="#">縮小</a></li>
+    <li onclick="switchCoord()"><a href="#">座標對照</a></li>
+    <li onclick="clearCasePos()"><a href="#">清除點位</a></li>
+    <li onclick="reLocateCasePos()"><a href="#">案發點重新定位</a></li>
+  </ul>
+</div>
+
+<!-- 工具列，顯示座標 -->
+<div class="coord">
+  <div class="selectRow">
+    <select class="diffCoord" name="" id="diffCoord" onchange="calsCoord()">
+      <option value="EPSG:4326">WGS84</option>
+      <option value='EPSG:3826'>TWD97-121</option>
+      <option value='EPSG:3825'>TWD97-119</option>
+      <option value='EPSG:3828'>TWD67-121</option>
+      <option value='EPSG:3827'>TWD67-119</option>
+    </select>
+    <select class="diffType" name="" id="diffType" onchange="calsCoord()">
+      <option value="度">度</option>
+      <option value="度分">度分</option>
+      <option value="度分秒">度分秒</option>
+      <option value="南北島圖">南北島圖</option>
+    </select>
+    <button type="button" onclick="copyCoord()"><i class="mds-copy"></i>複製</button>
+  </div>
+  <div class="cals" id="calsCoordResult"></div>
+</div>
+
+<!-- 工具列，繪圖工具 -->
+<div class="drawBox">
+  <div class="title">請選擇繪製的顏色</div>
+  <div class="colorBox" onchange="switchFreehandColor();">
+    <input class="colorRadio" type="radio" name="drawColorRadio" value="#ff0000" style="background-color:#ff0000" checked>
+    <input class="colorRadio" type="radio" name="drawColorRadio" value="#ffa500" style="background-color: #ffa500">
+    <input class="colorRadio" type="radio" name="drawColorRadio" value="#ffff00" style="background-color:#ffff00">
+    <input class="colorRadio" type="radio" name="drawColorRadio" value="#00ff00" style="background-color:#00ff00">
+    <input class="colorRadio" type="radio" name="drawColorRadio" value="#007fff" style="background-color:#007fff">
+    <input class="colorRadio" type="radio" name="drawColorRadio" value="#0000ff" style="background-color:#0000ff">
+    <input class="colorRadio" type="radio" name="drawColorRadio" value="#8b00ff" style="background-color:#8b00ff">
+  </div>
+</div>
+
+<!-- 工具列，測量工具 -->
+
+<!-- 截圖工具 -->
+<div class="takePicBox">
+  <div class="title">請選擇功能</div>
+  <div class="typeBox">
+    <button type="button" onclick="printControl.print({ imageType: 'image/png', printType: 'png'})"><i class="mds-picture-vertical"></i>PNG</button>
+    <button type="button" onclick="printControl.print({ imageType: 'image/jpeg', printType: 'jpg'})"><i class="mds-picture-horizontal"></i>JPG</button>
+    <button type="button" onclick="printControl.print({ imageType: 'image/jpeg', printType: 'print'})"><i class="mds-print"></i>列印</button>
+    <button type="button" onclick="printControl.copyMap({ imageType: 'image/jpeg' , printType: 'clipboard'})"><i class="mds-clipboard"></i>剪貼簿</button>
+  </div>
+</div>
+
+<!-- /* EMIC CCTV框 */ -->
+<div class="cctvBox">
+  <div class="close" onclick="cctvBoxCtl(true);"><i class="mds-close"></i></div>
+  <div class="title"></div>
+  <div class="content"></div>
+</div>
+
+<!-- 案件列表 -->
+<div class="caseListBox" style="position: absolute;right: 5px;top: 30px;">
+  <div class="inputBox">
+
+    <!-- <i class="mds-search"></i> -->
+    <input type="text" id="filterCase" placeholder="請輸入關鍵字">
+    <button type="button" onclick="switchCaseType()">篩選<i class="mds-up-double-arrow"></i></button>
+    <div class="caseTypeList">
+      <label class="type"><input type="checkbox" value="火災"><img src="/static/map/img/icon/01.png" alt="">火災</label>
+      <label class="type"><input type="checkbox" value="緊急救護"><img src="/static/map/img/icon/02.png" alt="">緊急救護</label>
+      <label class="type"><input type="checkbox" value="其他"><img src="/static/map/img/icon/03.png" alt="">其他</label>
+      <label class="type"><input type="checkbox" value="颱風"><img src="/static/map/img/icon/04.png" alt="">颱風</label>
+      <label class="type"><input type="checkbox" value="地震"><img src="/static/map/img/icon/05.png" alt="">地震</label>
+      <label class="type"><input type="checkbox" value="水災"><img src="/static/map/img/icon/06.png" alt="">水災</label>
+      <label class="type"><input type="checkbox" value="災害搶救"><img src="/static/map/img/icon/09.png" alt="">災害搶救</label>
+      <label class="type"><input type="checkbox" value="公務"><img src="/static/map/img/icon/10.png" alt="">公務</label>
+    </div>
+  </div>
+  <div id="caselist">
+    <div class="tableBox"><table id="caseListTable"><tbody></tbody></table></div>
+  </div>
+</div>
+
+<!-- dom END -->
+
+<script type="text/javascript">
+
+/*initProjection*/
+proj4.defs("EPSG:3824","+proj=longlat +ellps=GRS80 +no_defs +type=crs");
+proj4.defs("EPSG:3825", "+proj=tmerc +lat_0=0 +lon_0=119 +k=0.9999 +x_0=250000 +y_0=0 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs");
+proj4.defs("EPSG:3826", "+proj=tmerc +lat_0=0 +lon_0=121 +k=0.9999 +x_0=250000 +y_0=0 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs");
+proj4.defs("EPSG:3827", "+proj=tmerc +lat_0=0 +lon_0=119 +k=0.9999 +x_0=250000 +y_0=0 +ellps=aust_SA +units=m +no_defs");
+proj4.defs("EPSG:3828", "+proj=tmerc +lat_0=0 +lon_0=121 +k=0.9999 +x_0=250000 +y_0=0 +ellps=aust_SA +units=m +no_defs");
+proj4.defs("EPSG:4326", "+proj=longlat +datum=WGS84 +no_defs");
+proj4.defs("EPSG:3857", "+proj=merc +a=6378137 +b=6378137 +lat_ts=0.0 +lon_0=0.0 +x_0=0.0 +y_0=0 +k=1.0 +units=m +nadgrids=@null +wktext  +no_defs");
+ol.proj.proj4.register(proj4);
+
+// 點選位置
+let selectedLoc = new ol.layer.Vector({source:new ol.source.Vector(),renderMode:'vector',declutter:true,style:new ol.style.Style({image:new ol.style.Icon(({anchor:[0.5,1],anchorXUnits:"fraction",anchorYUnits:"fraction",src:  '自訂地標.png',scale:0.25}))}) });
+
+//比例尺 
+let scaleLineControl = new ol.control.ScaleLine();
+//設定地圖預設顯示底圖
+let baselayer = new ol.layer.Tile({zIndex:1});
+// 淹水潛勢圖 
+let floodpotential = new ol.layer.Tile({zIndex:5});
+
+//  map layers (case & car)
+let casepointsrc=new ol.source.Vector();
+let casepoint=new ol.layer.Vector({source:casepointsrc,zIndex:20,visible:true,style:casePointStyle,renderOrder:null,renderMode:'vector'});
+let carpointsrc=new ol.source.Vector();
+let carpoint=new ol.layer.Vector({source:carpointsrc,zIndex:18,visible:true,style:carPointStyle,renderOrder:null,renderMode:'vector'});
+const casePointCache={};//cache dict
+const caseTypeIconDict={
+  "其他":"03.png","火災":"01.png","緊急救護":"02.png","水災":"06.png","災害搶救":"09.png","檢舉案件":"08.png","地震":"05.png","颱風":"04.png","公務":"10.png",
+  "其他gray":"03gray.png","火災gray":"01gray.png","緊急救護gray":"02gray.png","水災gray":"06gray.png","災害搶救gray":"09gray.png","檢舉案件gray":"08gray.png","地震gray":"05gray.png","颱風gray":"04gray.png","公務gray":"10gray.png",
+};
+function casePointStyle(feature) {
+  if (feature.get('show') == false) return new ol.style.Style({}) 
+  let ct = feature.get('dis_code_case'); style=casePointCache[ct];
+  if(!style){style=casePointCache[ct]=new ol.style.Style({image: new ol.style.Icon(({src:'/static/map/img/icon/'+caseTypeIconDict[ct],scale: 0.22,}))});}
+  return style;
+};
+function casePointGrayStyle(feature) {
+  let ct = feature.get('dis_code_case'); style=casePointCache[ct+'gray'];
+  if(!style){style=casePointCache[ct+'gray']=new ol.style.Style({image: new ol.style.Icon(({src: caseTypeIconDict[ct+'gray'],scale: 0.22,}))});}
+  return style;
+};
+function carPointStyle(feature) {
+  if (feature.get('show') == false) return new ol.style.Style({}) 
+  let ii=new ol.style.Style({image:new ol.style.Icon({anchor:[.5,.5],anchorXUnits:'fraction',rotation:Math.PI/180*(feature.get('dir0')+90),
+    anchorYUnits:'fraction',src:'https://bot.mds.com.tw/webdemo/gis119/img/'+((feature.get('call_no').length<5 && feature.get('call_no')[2]=='9'||feature.get('call_no').length==5 && feature.get('call_no')[3]=='9')?'ambulance':'fire_truck')+'.png',scale:1})});
+  return feature.get('csno')?[ii,new ol.style.Style({text:new ol.style.Text({font:'16px sans-serif',text:feature.get('call_no'),fill:new ol.style.Fill({color:'#8f8'}),stroke:new ol.style.Stroke({color:'rgba(0,0,0,0.9)',width:5})})})]:ii;
+};
+
+// 案件與列表連動虛線
+let caseDashLine = new ol.layer.Vector({source:new ol.source.Vector(),renderMode:'vector',declutter:true, zIndex: 12, style: [new ol.style.Style({ stroke: new ol.style.Stroke({ width: 5, color: '#000', lineDash:   [5, 8] }) }),new ol.style.Style({stroke: new ol.style.Stroke({ width: 3, color: '#ff8700', lineDash: [5, 8] })})]}) ;
+
+// 車子與案件連線虛線
+let carlink2case = new ol.layer.Vector({source:new ol.source.Vector(),renderMode:'vector',declutter:true, zIndex: 12, style: [new ol.style.Style({ stroke: new ol.style.Stroke({ width: 5, color: '#000', lineDash:   [5, 8] }) }),new ol.style.Style({stroke: new ol.style.Stroke({ width: 3, color: '#ff8700', lineDash: [5, 8] })})]}) ;
+
+
+let map = new ol.Map({
+  controls:ol.control.defaults({zoom:true,attribution:false,rotate:false}).extend([scaleLineControl]),
+  layers:[baselayer, selectedLoc, floodpotential, casepoint, carpoint, carlink2case, caseDashLine],target:'map',
+  view:new ol.View({projection:"EPSG:3857",center:ol.proj.fromLonLat([120.35,22.735]),zoom:12,maxZoom:20,minZoom:5,enableRotation:false}),
+});
+
+// collapse 只顯示一個
+function toggleCollapse(obj, checkif){
+  if ($(obj).hasClass('active')){
+    $(obj).prop('checked', false);
+    $(obj).removeClass('active');
+    obj.nextElementSibling.style.overflow = 'hidden';
+  }else{
+    // 收其他
+    let collapseList = document.querySelectorAll('.sidebar .collapse>input');
+    for(let i=0;i<collapseList.length;i++){
+      $(collapseList[i]).prop("checked", false);
+      $(collapseList[i]).removeClass('active');
+      $(collapseList[i]).next().css({"overflow": "hidden"});
+    }
+    // 展開點擊
+    $(obj).prop('checked', true);
+    $(obj).addClass('active');
+    setTimeout(() => {$(obj).next().css({"overflow-y": "scroll"})}, 100);
+  }
+}
+
+/////////////------------------圖層套疊  START----------------------------------/////////////////
+// 經緯度
+let graticule = function (checkif, num){
+  if(checkif){
+    map.addLayer(new ol.layer.Graticule({strokeStyle:new ol.style.Stroke({color:'rgba(100,100,100,.9)',width:1}),zIndex:6,showLabels:true,
+    lonLabelPosition: 0.99,lonLabelStyle:new ol.style.Text({font:'14px Arial,Calibri,sans-serif',/* textBaseline:'bottom',*/fill:new ol.style.Fill({color: '#fff'}),stroke:new ol.style.Stroke({color:'rgba(0,0,0,1)',width:5})}),
+    latLabelStyle:new ol.style.Text({font:'20px Arial,Calibri,sans-serif',textAlign:'end',fill:new ol.style.Fill({color:'#fff'}),stroke:new ol.style.Stroke({color:"rgba(0,0,0,1)",width:5})}),name: `${overlayerData[num]['layerName']}`}));
+  }
+}
+// point相關
+let overKmlPointLayer = function (checkif, num){
+  if (checkif){
+    let format;
+    switch (overlayerData[num]['type']){
+      case 'geojson': format = new ol.format.GeoJSON();  break;
+      case 'kml': format = new ol.format.KML(); break;
+    }
+    map.addLayer(new ol.layer.Vector({source:new ol.source.Vector({url: overlayerData[num]['url'], format: format, crossOrigin:'anonymous'}),zIndex:11,name:`${overlayerData[num]['layerName']}`, declutter: true, style: function(feature){let tmpScale = scaleSize();return new ol.style.Style({image:new ol.style.Icon(({anchor:[0.5,46],anchorXUnits:"fraction",anchorYUnits:"pixels",src: `${overlayerData[num]['imgUrl']}`,scale: tmpScale}))})  
+    }}));
+  }
+}
+// line相關
+let overKmlLineLayer = function (checkif, num){
+  if (checkif){
+    let format;
+    switch (overlayerData[num]['type']){
+      case 'geojson': format = new ol.format.GeoJSON();  break;
+      case 'kml': format = new ol.format.KML(); break;
+    }
+    map.addLayer(new ol.layer.Vector({source:new ol.source.Vector({url: overlayerData[num]['url'], format: format,crossOrigin:'anonymous'}),zIndex:11,name: overlayerData[num]['layerName'], declutter: true }));
+  }
+}
+// tile相關 
+let overTileLayer = function(checkif, num){
+  map.addLayer(new ol.layer.Tile({zIndex:50, source: new ol.source.XYZ({url: overlayerData[num]['url'],crossOrigin:'anonymous'}), name: overlayerData[num]['layerName']}));
+}
+// 消防水源
+let fwLayer = function (checkif, num){
+  if (checkif){
+    let format;
+    switch (overlayerData[num]['type']){
+      case 'geojson': format = new ol.format.GeoJSON();  break;
+      case 'kml': format = new ol.format.KML(); break;
+    }
+    map.addLayer(new ol.layer.Vector({source:new ol.source.Vector({url: overlayerData[num]['url'], format: format,crossOrigin:'anonymous'}),zIndex:11,name: overlayerData[num]['layerName'], declutter: false,style:function(feature, resolution){
+      let tmpScale = scaleSize();
+      let kind=feature.get('kind').split('_')[0];
+      let type=feature.get('kind').split('_')[1];
+      let status=feature.get('kind').split('_')[2];
+      if(kind=='游泳池'){imgSrc="/webdemo/gis119/img/water/pool.png";}
+      else if(kind=='蓄水池'){imgSrc="/webdemo/gis119/img/water/cistern.png";}
+      else if(kind=='消防栓'&&type=='地下式'&&status=='良好'){imgSrc="/webdemo/gis119/img/water/down_good.png";}
+      else if(kind=='消防栓'&&type=='地下式'&&status=='損壞'){imgSrc="/webdemo/gis119/img/water/down_bad.png";}
+      else if(kind=='消防栓'&&type=='地下式'&&status=='null'){imgSrc="/webdemo/gis119/img/water/down_bad.png";}
+      else if(kind=='消防栓'&&type=='地上式'&&status=='良好'){imgSrc="/webdemo/gis119/img/water/up_good.png";}
+      else if(kind=='消防栓'&&type=='地上式'&&status=='損壞'){imgSrc="/webdemo/gis119/img/water/up_bad.png";}
+      else{imgSrc="/webdemo/gis119/img/water/other.png";}
+      return new ol.style.Style({image:new ol.style.Icon(({anchor:[0.5, 46],anchorXUnits:"fraction",anchorYUnits:"pixels",src:imgSrc,scale:tmpScale}))});
+    }}));
+  }
+}
+
+function scaleSize(){
+  let initScale = 0.15;
+  let mapzoom = map.getView().getZoom();
+  if (mapzoom > 10) {initScale = 0.2;} 
+  if (mapzoom < 14 && mapzoom >= 12) {initScale = 0.25;}
+  if (mapzoom >= 14 && mapzoom < 15) {initScale = 0.3;} 
+  if (mapzoom >= 15) {initScale = 0.35;} 
+  return initScale
+}
+
+let overlayerData=[
+  {'name': "AED場所", "layerName": "GIS_AEDoverlayer1", "imgUrl":"/webdemo/gis119wei/layer/aed2.png", "url": "https://gis.fdkc.gov.tw/rescue/getlayer/geojson?layer=gis_opendata_aed", "type": "geojson", "function": overKmlPointLayer},
+  {'name': "AED場所(衛)", "layerName": "GIS_AEDoverlayer2", "imgUrl":"/webdemo/gis119wei/layer/aed2.png", "url": "https://gis.fdkc.gov.tw/rescue/getlayer/geojson?layer=gis_aed", "type": "geojson", "function": overKmlPointLayer},
+  {'name': "古蹟(文)", "layerName": "GIS_MONUMENTSoverlayer", "imgUrl":"/webdemo/gis119wei/layer/古蹟1.png", "url": "/webdemo/gis119wei/geoSource/GIS_MONUMENTS.geojson", "type": "geojson", "function": overKmlPointLayer},
+  {'name': "工業管線", "layerName": "GIS_2D_OILoverlayer", "imgUrl":"/webdemo/gis119wei/layer/工業管線.png", "url": "/webdemo/gis119wei/geoSource/GIS_2D_OIL.geojson", "type": "geojson", "function": overKmlLineLayer},
+  {'name': "列管場所", "layerName": "NFASCA01overlayer", "imgUrl":"/webdemo/gis119wei/layer/列管場所.png", "url": "/webdemo/gis119wei/geoSource/NFASCA01.geojson", "type": "geojson", "function": overKmlPointLayer},
+  {'name': "弱勢團體 (衛)", "layerName": "DIS_CASE_HANDLEoverlayer", "imgUrl":"/webdemo/gis119wei/layer/弱勢團體1.png", "url": "/webdemo/gis119wei/geoSource/DIS_CASE_HANDLE.geojson", "type": "geojson", "function": overKmlPointLayer},
+  {'name': "列管廠商 (化)", "layerName": "DISASTER_BASICoverlayer", "imgUrl":"/webdemo/gis119wei/layer/列管場所2.png", "url": "/webdemo/gis119wei/geoSource/DISASTER_BASIC.geojson", "type": "geojson", "function": overKmlPointLayer},
+  {'name': "消防水源(署)", "layerName": "NFAWSD01_20221026overlayer", "imgUrl":"/webdemo/gis119wei/layer/up_good.png", "url": "https://gis.fdkc.gov.tw/rescue/getlayer/geojson?layer=wsd01", "type": "geojson", "function": fwLayer},
+  {'name': "建築物(署)", "layerName": "NFASCD88overlayer", "imgUrl":"/webdemo/gis119wei/layer/nfascd88.png", "url": "/webdemo/gis119wei/geoSource/NFASCD88.geojson", "type": "geojson", "function": overKmlPointLayer},
+  {'name': "消防水源", "layerName": "WSD01_20221026overlayer", "imgUrl":"/webdemo/gis119wei/layer/up_good.png", "url": "https://gis.fdkc.gov.tw/rescue/getlayer/geojson?layer=nfawsd01", "type": "geojson", "function": fwLayer},
+  {'name': "列管場所", "layerName": "SCA01_20221026overlayer", "imgUrl":"/webdemo/gis119wei/layer/列管場所3.png", "url": "/webdemo/gis119wei/geoSource/SCA01_20221026.geojson", "type": "geojson", "function": overKmlPointLayer},
+  {'name': "水源缺乏地區", "layerName": "GIS_LACKWATERoverlayer", "imgUrl":"/webdemo/gis119wei/layer/水源缺乏.png", "url": "/webdemo/gis119wei/geoSource/GIS_LACKWATER.geojson", "type": "geojson", "function": overKmlLineLayer},
+  {'name': "自訂地標", "layerName": "GIS_LOCATERoverlayer", "imgUrl":"/webdemo/gis119wei/layer/自訂地標.png", "url": "/webdemo/gis119wei/geoSource/GIS_LOCATER.geojson", "type": "geojson", "function": overKmlPointLayer},
+  {'name': "救難轄區圖(無)", "layerName": "GIS_DUTYAREA_Doverlayer", "imgUrl": "/webdemo/gis119wei/layer/救難轄區圖.png", "url": "", "type": "geojson", "function": overKmlLineLayer},
+  {'name': "分隊點位", "layerName": "deptoverlayer", "imgUrl":"/webdemo/gis119wei/layer/dept.png", "url": "/webdemo/gis119/geoSource/geolayers/dept.geojson", "type": "geojson", "function": overKmlPointLayer},
+  {'name': "國道省道", "layerName": "deptoverlayer", "imgUrl":"/webdemo/gis119wei/layer/國道省道2.png", "url": "/webdemo/gis119wei/geoSource/GIS_MILEPOST.geojson", "type": "geojson", "function": overKmlPointLayer},
+  {'name': "管線資訊(無)", "layerName": "deptoverlayer", "imgUrl":"/webdemo/gis119wei/layer/管線資訊.png", "url": "", "type": "geojson", "function": overKmlPointLayer},
+  {'name': "林道圖", "layerName": "GIS_LINDAUoverlayer", "imgUrl":"/webdemo/gis119wei/layer/林道圖.png", "url": "/webdemo/gis119wei/geoSource/GIS_LINDAU.geojson", "type": "geojson", "function": overKmlLineLayer},
+  {'name': "毒化物", "layerName": "GIS_DANLOCoverlayer", "imgUrl":"/webdemo/gis119wei/layer/毒化物.png", "url": "/webdemo/gis119wei/geoSource/GIS_DANLOC.geojson", "type": "geojson", "function": overKmlPointLayer},
+  {'name': "路況監視(無)", "layerName": "GIS_DANLOCoverlayer", "imgUrl":"/webdemo/gis119wei/layer/路況監視.png", "url": "", "type": "geojson", "function": overKmlPointLayer},
+  {'name': "無線電點(無)", "layerName": "GIS_DANLOCoverlayer", "imgUrl":"/webdemo/gis119wei/layer/無線電.png", "url": "", "type": "geojson", "function": overKmlPointLayer},
+  {'name': "GPS車輛監控", "layerName": "GIS_DANLOCoverlayer", "imgUrl":"/webdemo/gis119wei/layer/GPS車輛定位.png", "url": "", "type": "geojson", "function": overKmlPointLayer},
+  {'name': "建築物", "layerName": "SCD88_20221026overlayer", "imgUrl":"/webdemo/gis119wei/layer/scd88.png", "url": "/webdemo/gis119wei/geoSource/SCD88_20221026.geojson", "type": "geojson", "function": overKmlPointLayer},
+  {'name': "急救責任醫院", "layerName": "EM_HOSPITAL_INFOoverlayer", "imgUrl":"/webdemo/gis119wei/layer/醫院_2_壓縮.png", "url": "/webdemo/gis119wei/geoSource/EM_HOSPITAL_INFO.geojson", "type": "geojson", "function": overKmlPointLayer},
+  {'name': "狹小巷道", "layerName": "GIS_NARROWLANEoverlayer", "imgUrl":"/webdemo/gis119wei/layer/狹窄巷道.png", "url": "/webdemo/gis119wei/geoSource/GIS_NARROWLANE.geojson", "type": "geojson", "function": overKmlLineLayer},
+  {'name': "放射性物質", "layerName": "GIS_RAYoverlayer", "imgUrl":"/webdemo/gis119wei/layer/放射性物質.png", "url": "/webdemo/gis119wei/geoSource/GIS_RAY.geojson", "type": "geojson", "function": overKmlPointLayer},
+  {'name': "救災轄區圖", "layerName": "GIS_DUTYAREA_Doverlayer", "imgUrl":"/webdemo/gis119wei/layer/救災搶救地區.png", "url": "/webdemo/gis119wei/geoSource/GIS_DUTYAREA_D.geojson", "type": "geojson", "function": overKmlLineLayer},
+]
+function createoverlayer(){
+  let content = document.querySelector('#overlaycontent');
+  for (let i=0;i<overlayerData.length;i++){
+    let label = document.createElement('label');label.setAttribute('class','item');
+    label.innerHTML = `<input type="checkbox" id="overlay-${i}" onchange="legendBtn(this.checked, '${overlayerData[i]['layerName']}', '${overlayerData[i]['imgUrl']}', '${overlayerData[i]['name']}', 'overlay', '${i}'); overLayerCtl(this.checked, ${i})" ><div class="iconContent"><img src="${overlayerData[i]['imgUrl']}"><div class="name">${overlayerData[i]['name']}</div></div><span class="tooltiptext">${overlayerData[i]['name']}</span>`;
+    content.append(label);
+
+    // 顯示該圖層文字
+    label.addEventListener('mouseenter', () => {
+      label.parentElement.nextElementSibling.style.visibility = 'visible';
+      label.parentElement.nextElementSibling.innerText = `${overlayerData[i]['name']}`
+    });
+    label.addEventListener('mouseleave', () => {
+      label.parentElement.nextElementSibling.style.visibility = 'hidden';
+    });
+  }
+}
+createoverlayer();
+
+//刪除用
+function overLayerCtl(checkif,arrNum){
+  if (checkif){
+    overlayerData[arrNum]['function'](true, arrNum);
+  }else{
+    // overlayerData[arrNum]['function'](false, arrNum);
+    let i=map.getLayers().getArray();
+    for (let j=0; j<i.length; j++) {if(i[j].get("name") && i[j].get("name")==overlayerData[arrNum]['layerName']) {map.removeLayer(i[j]); break;}}; 
+  }
+}
+
+/////////////------------------圖層套疊  END----------------------------------/////////////////
+
+/////////////------------------環境資訊  START----------------------------------/////////////////
+let rainfall = function (checkif, num){
+  if(checkif){
+    let cwbRainfall = new ol.layer.Vector({source:new ol.source.Vector(),renderMode:'vector',declutter:true, zIndex: 12, name: weatherInfo[num]['layerName'],properties: {'name':'envdata'}});		
+    $.getJSON(weatherInfo[num]['url'], function (res) {
+      let count = Object.keys(res.records.location).length;
+      for (let i = 0; i < count; ++i) {
+        let coordinates = ol.proj.fromLonLat([res.records.location[i].lon,res.records.location[i].lat,]);
+        rainfallValue = parseFloat(res.records.location[i].weatherElement[0].elementValue).toFixed();
+        if (rainfallValue === "-998" ||rainfallValue === "-999" ||rainfallValue === "0" ) {continue;} 
+        else {
+          cwbRainfall.getSource().addFeature(new ol.Feature({
+            geometry:new ol.geom.Point(coordinates),
+            name:res.records.location[i].stationId,// station id
+            value:rainfallValue,
+            time:res.records.location[i].time.obsTime,
+            popupContent: 
+            ` <div class="popupTable">
+                <table>
+                  <thead>
+                    <tr><th colspan="2">${res.records.location[i].stationId}</th></tr>
+                  </thead>
+                  <tbody>
+                    <tr><td style="width:50px;">雨量</td><td>${rainfallValue}mm</td></tr>
+                    <tr><td>時間</td><td>${res.records.location[i].time.obsTime}</td></tr>
+                  </tbody>
+                </table>
+              </div>`,
+            popupWidth: 230,
+          }));
+        }
+        cwbRainfall.setStyle(rainfallStyleFunction);
+      }
+      map.addLayer(cwbRainfall);
+    });
+	}
+}
+function rainfallStyleFunction(feature, resolution) {
+  let setRadius;let setImageFill;let setImageStroke;
+  if ((feature.get("value") > 0) & (feature.get("value") <= 20)) {setRadius = 17;setImageFill = "rgb(90, 255, 50)";}
+  if ((feature.get("value") > 20) & (feature.get("value") <= 40)) {setRadius = 17;setImageFill = "rgba(255, 199, 0, 1)";}
+  if (feature.get("value") > 40) {setRadius = 17;setImageFill = "rgba(255, 100, 50, 1)";}
+  return new ol.style.Style({
+    text:new ol.style.Text({text:"💧"+feature.get("value")+' mm',font:'900 20px "Arial,微軟正黑體,sans-serif"',fill:new ol.style.Fill({color:setImageFill}),stroke:new ol.style.Stroke({width:3,color:[0, 0, 0]}),padding:[-10, -2, -12, -20],textAlign:'center'})
+  });
+}
+
+// 地震
+let earthquake = function(checkif, num){
+  if(checkif){
+    let cwbEarthquake = new ol.layer.Vector({source:new ol.source.Vector(),renderMode:'vector',declutter:true, zIndex: 12, name: weatherInfo[num]['layerName']});
+    $.getJSON(weatherInfo[num]['url'], function (res) {
+      console.log(res);
+      earthquakeArr = res.records.Earthquake.length;
+      for (let i = 0; i < earthquakeArr; i++) {
+        let lon =res.records.Earthquake[i].EarthquakeInfo.Epicenter.EpicenterLongitude;
+        let lat =res.records.Earthquake[i].EarthquakeInfo.Epicenter.EpicenterLatitude;
+        let location = res.records.Earthquake[i].EarthquakeInfo.Epicenter.Location;
+        let value = res.records.Earthquake[i].EarthquakeInfo.EarthquakeMagnitude.MagnitudeValue;//芮氏規模
+        let time = res.records.Earthquake[i].EarthquakeInfo.OriginTime;
+        let deep = res.records.Earthquake[i].EarthquakeInfo.FocalDepth;
+        let note = res.records.Earthquake[i].ReportContent;
+        let coordinates = ol.proj.fromLonLat([lon, lat]);
+        cwbEarthquake.getSource().addFeature(new ol.Feature({
+          geometry:new ol.geom.Point(coordinates),
+          location:location,
+          value:value,/*芮氏規模*/
+          deep:deep,
+          time:time,
+          note:note,
+          popupContent:`
+            <div class="popupTable">
+              <table>
+                <thead>
+                  <tr><th colspan="4">${location.split('(')[0]}</th></tr>
+                </thead>
+                <tbody>
+                  <tr><td style="width:60px;">芮氏規模</td><td>${value}</td><td>深度</td><td>${deep}km</tr>
+                  <tr><td>內容</td><td colspan="3" style="text-align:left;">${note}</td></tr>
+                </tbody>
+              </table>
+            </div>`,
+          popupWidth: 450,
+        })); 
+      }
+      cwbEarthquake.setStyle(earthquakeStyleFunction);
+      map.addLayer(cwbEarthquake);
+    });
+  }
+}
+function earthquakeStyleFunction(feature) {
+	let data = feature.get('value').toString();
+	let setRadius;let setImageFill;let setImageStroke;
+	if (feature.get('value') >0) {setRadius = 17;setImageFill = "rgba(33, 207, 66, 1)";}//#21CF42  33 207 66
+	if ((feature.get('value') >= 4.5) ) {setRadius = 17;setImageFill = "rgba(254, 210, 58, 1)";}//254 210 58
+  if ((feature.get('value') >= 5)) {setRadius = 17;setImageFill = "rgba(243, 152, 0, 1)";} // 243 152 0
+	if (feature.get('value') >= 6) {setRadius = 17;setImageFill = "rgba(255, 0, 0, 1)";} // 255 0 0
+	return new ol.style.Style({
+		image:new ol.style.Circle({radius:setRadius,fill:new ol.style.Fill({color:setImageFill,}),stroke:new ol.style.Stroke({color:setImageStroke,width:0.1,}),}),
+		text:new ol.style.Text({text:data,scale:1.2,fill:new ol.style.Fill({color:'#000'}),stroke:new ol.style.Stroke({width:0.8})})
+	});
+}
+
+// 氣象站
+let tempStation = function(checkif, num) {
+  document.querySelector('.loadingBlock').style.display = 'flex';
+  if(checkif){
+    let tempStation = new ol.layer.Vector({source:new ol.source.Vector(),renderMode:'vector',declutter:true, zIndex: 12, name: weatherInfo[num]['layerName']});
+    $.getJSON(weatherInfo[num]['url'], function (res) {
+      let count = Object.keys(res.records.location).length;
+      for (let i = 0; i < count; ++i) {
+        let coordinates = ol.proj.fromLonLat([res.records.location[i].lon,res.records.location[i].lat,]);
+        if (res.records.location[i].weatherElement[2].elementValue == "-99") {continue;} 
+        else {tempStation.getSource().addFeature(new ol.Feature({
+          geometry:new ol.geom.Point(coordinates),
+          name:res.records.location[i].stationId,/*station id*/
+          value:res.records.location[i].weatherElement[2].elementValue, /*weather temp*/
+          time:res.records.location[i].time.obsTime,
+          district:res.records.location[i].locationName,unit:'°C',
+          popupContent:`
+            <div class="popupTable">
+              <table>
+                <thead>
+                  <tr><th colspan="2">${res.records.location[i].stationId}</th></tr>
+                </thead>
+                <tbody>
+                  <tr><td>溫度</td><td>${res.records.location[i].weatherElement[2].elementValue}°C</td></tr>
+                  <tr><td>時間</td><td>${res.records.location[i].time.obsTime}</td></tr>
+                </tbody>
+              </table>
+            </div>`,
+          popupWidth: 200,
+        }));
+        tempStation.setStyle(tempStyleFunction);}
+      }
+    });
+    map.addLayer(tempStation);
+    document.querySelector('.loadingBlock').style.display = 'none';
+  }
+}
+function tempStyleFunction(feature, resolution) {
+  let setRadius;let setImageFill;let setImageStroke;
+  if (feature.get("value") < 20) {setRadius = 17;setImageFill = "rgb(90, 255, 50)";}//rgb(90, 255, 50)rgb(146, 208, 80)
+  if ((feature.get("value") >= 20) & (feature.get("value") <= 29)) {setRadius = 17;setImageFill = "rgba(255, 199, 0, 1)";}
+  if (feature.get("value") > 29) {setRadius = 17;setImageFill = "rgba(255, 100, 0)";}//rgba(255, 100, 100)
+  return new ol.style.Style({
+    text:new ol.style.Text({text:String("🌡")+feature.get("value")+' °C',font:pointFontSize,fill:new ol.style.Fill({color:setImageFill}),stroke:new ol.style.Stroke({width:3,color:[0, 0, 0]}),padding:[-10, -2, -12, -20],textAlign:'center'})
+  });
+}
+
+// 鄉鎮天氣
+let countryWeather = function (checkif, num){
+  if(checkif){
+    let cwbCityWeekForecast = new ol.layer.Vector({source:new ol.source.Vector(),renderMode:'vector',declutter:true, zIndex: 12, name: weatherInfo[num]['layerName']});
+    $.getJSON(weatherInfo[num]['url'],function(res){
+      for (let i = 0; i < res.records.locations.length; i++) {
+        for(let y =0;y<res.records.locations[i].location.length;y++){
+          let lon = res.records.locations[i].location[y].lon;
+          let lat = res.records.locations[i].location[y].lat;
+          let coordinates = ol.proj.fromLonLat([lon, lat]);
+          cwbCityWeekForecast.getSource().addFeature(new ol.Feature({
+            geometry:new ol.geom.Point(coordinates),
+            locationName:res.records.locations[i].location[y].locationName,
+            time1:res.records.locations[i].location[y].weatherElement[0].time[1].dataTime,
+            value1:res.records.locations[i].location[y].weatherElement[0].time[1].elementValue[0].value,
+            popupContent:`
+              <div class="popupTable">
+                <table>
+                  <thead>
+                    <tr><th colspan="2">${res.records.locations[i].location[y].locationName}</th></tr>
+                  </thead>
+                  <tbody>
+                    <tr><td>風速</td><td>${res.records.locations[i].location[y].weatherElement[0].time[1].elementValue[0].value} m/s</td></tr>
+                    <tr><td>時間</td><td>${res.records.locations[i].location[y].weatherElement[0].time[1].dataTime.substr(0, 19)}</td></tr>
+                  </tbody>
+                </table>
+              </div>`,
+            popupWidth: 200
+          }));
+        }
+      }
+      cwbCityWeekForecast.setStyle(cityWeekForcastStyleFunction);
+      map.addLayer(cwbCityWeekForecast);
+    })
+  }
+}
+function cityWeekForcastStyleFunction(feature) {
+  let setRadius;let setImageFill;let setImageStroke;
+	if ((feature.get("value1") >= 0) & (feature.get("value1") <=1)) {setImageFill = "rgb(90, 255, 50)";}//rgb(90, 255, 50)rgb(146, 208, 80)
+	else if ((feature.get("value1") > 1) & (feature.get("value1") <= 3)) {setImageFill = "rgb(255, 199, 0)";}
+	else if (feature.get("value1") > 3) {setImageFill = "rgba(255, 100, 100)";}
+  else{setImageFill = "rgba(255, 100, 100)";}
+	return new ol.style.Style({
+		text:new ol.style.Text({text:"💨"+feature.get("value1")+' m/s',font:pointFontSize,fill:new ol.style.Fill({color:setImageFill}),stroke:new ol.style.Stroke({width:3,color:[0, 0, 0]}),padding:[-10, -2, -12, -20],textAlign:'center'})
+	});
+}
+
+// 降雨預報 未來一小時 (CORS問題)
+let rainfallForecast = function (checkif, num){
+  let coordRange = [118,20,123.5,27]
+  let rainfallForecaseLayer = new ol.layer.Image({
+    source: new ol.source.ImageStatic({url: "https://winfo.tycg.gov.tw/GetQpeSumRain/image/Tmp.gif",imageExtent: ol.extent.applyTransform([118, 20, 123.5, 27],ol.proj.getTransform("EPSG:4326", "EPSG:3857"))}),name: weatherInfo[num]['layerName'],zIndex:12,
+  })
+  map.addLayer(rainfallForecaseLayer);
+}
+
+// 潮汐預報
+let seaTideLoc = {} // 位置
+let seaTideForecast = function (checkif, num){
+  // document.querySelector('.loadingBlock').style.display = 'flex';
+  $.getJSON('A0021-001.json', function(locRes){//取得座標
+    for (let i=0;i<locRes.length;i++){// 儲存座標，因氣象局另外給資料
+      seaTideLoc[locRes[i]['locationName']] = {'lon': locRes[i]['longitude'],'lat': locRes[i]['latitude']}
+    }
+    $.getJSON('https://opendata.cwb.gov.tw/api/v1/rest/datastore/F-A0021-001?Authorization=CWB-326DAE79-B70E-4DD3-BC36-07B077E82CAB&format=JSON&elementName=1%E6%97%A5%E6%BD%AE%E6%B1%90&sort=dataTime&timeFrom=2022-12-20T00%3A00%3A00&timeTo=2022-12-21T00%3A00%3A00', function(opendataRes){//取得data
+      // console.log(opendataRes);
+      let seaTideLayer = new ol.layer.Vector({source:new ol.source.Vector(),renderMode:'vector',declutter:true, zIndex: 12, name: weatherInfo[num]['layerName'],style:new ol.style.Style({image:new ol.style.Icon(({anchor:[0.5,46],anchorXUnits:"fraction",anchorYUnits:"pixels",src: `${weatherInfo[num]['imgUrl']}`,scale:0.25}))}) });
+      let locNum = opendataRes.records.location //總共多少地區
+      for (let i=0;i<locNum.length;i++){
+        let locName = opendataRes.records.location[i].locationName;
+        if (locName in seaTideLoc){
+          let coordinates = ol.proj.fromLonLat([seaTideLoc[locName]['lon'], seaTideLoc[locName]['lat']]);
+          let feature = new ol.Feature({geometry:new ol.geom.Point(coordinates),name:opendataRes.records.location[i].locationName})
+          let tmp="";
+          if(opendataRes.records.location[i].validTime.length>0){
+            for (let y=0;y<opendataRes.records.location[i].validTime[0].weatherElement[0].time.length;y++){
+              tmp += `<span>${opendataRes.records.location[i].validTime[0].weatherElement[0].time[y]['dataTime']}</span><br><span>${opendataRes.records.location[i].validTime[0].weatherElement[0].time[y]['parameter'][1]['parameterValue']}</span><br>`;  
+            }
+            feature.setProperties({'value': tmp})
+            seaTideLayer.getSource().addFeature(feature);
+          }
+        }
+      }
+      map.addLayer(seaTideLayer);
+    })
+  })
+}
+
+// 淹水警戒
+let floodAlert = function (checkif ,num){
+  // document.querySelector('.loadingBlock').style.display = 'flex';
+  if (checkif){
+    map.addLayer(new ol.layer.Vector({source:new ol.source.Vector({url: weatherInfo[num]['url'], format: new ol.format.KML(),crossOrigin:'anonymous'}),zIndex:11,name: weatherInfo[num]['layerName'], declutter: true }));
+  }
+}
+
+// 颱風特報
+let typephoon = function (checkif, num){
+  if (checkif) {
+    map.addLayer(new ol.layer.Vector({source:new ol.source.Vector({url:"https://odbpo.oc.ntu.edu.tw/static/figs/cwbdata/fifows_wsp.kml",format:new ol.format.KML(),crossOrigin:'anonymous'}),zIndex:11,name:'dgdptyphoon2'}));
+    map.addLayer(new ol.layer.Vector({source:new ol.source.Vector({url:"https://odbpo.oc.ntu.edu.tw/static/figs/cwbdata/fifows_typhoon.kml",format:new ol.format.KML(),crossOrigin:'anonymous'}),zIndex:12,name:'dgdptyphoon1'}));
+  }else{
+    let i=map.getLayers().getArray();
+    for (let ii=1; ii<=2; ii++) { 
+      for (let j=0; j<i.length; j++) {
+        if(i[j].get("name") && i[j].get("name")=='dgdptyphoon'+ii) {map.removeLayer(i[j]); break;}
+      }; 
+    };
+  }
+}
+
+// 土石流潛勢
+let rockslide = function (checkif, num){
+  if(checkif){
+    map.addLayer(new ol.layer.Tile({source:new ol.source.XYZ({url: weatherInfo[num]['url'],crossOrigin:'anonymous',maxZoom: 20}),zIndex:3,name: weatherInfo[num]['layerName']}));
+  }
+}
+
+// 地質敏感
+let sensitive = function (checkif, num){
+  if(checkif){
+    map.addLayer(new ol.layer.Tile({source:new ol.source.XYZ({url: weatherInfo[num]['url'],crossOrigin:'anonymous',maxZoom: 20}),zIndex:3,name: weatherInfo[num]['layerName']}));
+  }
+}
+
+// 字體
+let pointFontSize = '900 20px "Arial,微軟正黑體,sans-serif"'
+// 環境資訊
+let weatherInfo=[
+  {'name': "雨量站", "layerName": "env-rainfallstationLayer", "imgUrl":"/webdemo/gis119wei/weather/雨量站.png", "url": "https://opendata.cwb.gov.tw/api/v1/rest/datastore/O-A0002-001?Authorization=CWB-326DAE79-B70E-4DD3-BC36-07B077E82CAB&elementName=HOUR_24&parameterName=CITY,TOWN", "type": "function" , "function": rainfall},
+  {'name': "地震", "layerName": "env-earthquakeLayer", "imgUrl":"/webdemo/gis119wei/weather/地震.png", "url": "https://opendata.cwb.gov.tw/api/v1/rest/datastore/E-A0015-001?Authorization=CWB-326DAE79-B70E-4DD3-BC36-07B077E82CAB&areaName=%E5%AE%9C%E8%98%AD%E7%B8%A3,%E8%8A%B1%E8%93%AE%E7%B8%A3,%E8%87%BA%E6%9D%B1%E7%B8%A3,%E6%BE%8E%E6%B9%96%E7%B8%A3,%E9%87%91%E9%96%80%E7%B8%A3,%E9%80%A3%E6%B1%9F%E7%B8%A3,%E8%87%BA%E5%8C%97%E5%B8%82,%E6%96%B0%E5%8C%97%E5%B8%82,%E6%A1%83%E5%9C%92%E5%B8%82,%E8%87%BA%E4%B8%AD%E5%B8%82,%E8%87%BA%E5%8D%97%E5%B8%82,%E9%AB%98%E9%9B%84%E5%B8%82,%E5%9F%BA%E9%9A%86%E5%B8%82,%E6%96%B0%E7%AB%B9%E7%B8%A3,%E6%96%B0%E7%AB%B9%E5%B8%82,%E8%8B%97%E6%A0%97%E7%B8%A3,%E5%BD%B0%E5%8C%96%E7%B8%A3,%E5%8D%97%E6%8A%95%E7%B8%A3,%E9%9B%B2%E6%9E%97%E7%B8%A3,%E5%98%89%E7%BE%A9%E7%B8%A3,%E5%98%89%E7%BE%A9%E5%B8%82,%E5%B1%8F%E6%9D%B1%E7%B8%A3", "type": "kml", "function": earthquake},
+  {'name': "氣象站", "layerName": "env-weatherTmplayer", "imgUrl":"/webdemo/gis119wei/weather/氣象站.png", "url": "https://opendata.cwb.gov.tw/api/v1/rest/datastore/O-A0001-001?Authorization=CWB-326DAE79-B70E-4DD3-BC36-07B077E82CAB&elementName=WDIR,WDSD,TEMP,HUMD,H_24R,PRES,D_TXT,D_TX,D_TNT,D_TN&parameterName%EF%BC%8C=CITY,TOWN", "type": "pointkml", 'function': tempStation},
+  {'name': "鄉鎮預報", "layerName": "env-countryForcastlayer", "imgUrl":"/webdemo/gis119wei/weather/天氣預報.png", "url": "https://opendata.cwb.gov.tw/api/v1/rest/datastore/F-D0047-093?Authorization=CWB-326DAE79-B70E-4DD3-BC36-07B077E82CAB&locationId=F-D0047-001,F-D0047-005,F-D0047-009,F-D0047-013,F-D0047-017,F-D0047-021,F-D0047-025,F-D0047-029,F-D0047-033,F-D0047-037,F-D0047-041,F-D0047-045,F-D0047-049,F-D0047-053,F-D0047-057,F-D0047-061,F-D0047-065,F-D0047-069,F-D0047-073,F-D0047-077,F-D0047-081,F-D0047-085,F-D0047-089&elementName=WS", "type": "json", 'function': countryWeather},
+  {'name': "降雨預報", "layerName": "env-rainfallForecastlayer", "imgUrl":"/webdemo/gis119wei/weather/降雨預報.png", "url": "https://bear.emic.gov.tw/BearBack/uploadFile/mmLayer/kml/步道.kml", "type": "png", 'function': rainfallForecast},
+  {'name': "潮汐預報", "layerName": "env-seaTideForecastlayer", "imgUrl":"/webdemo/gis119wei/weather/潮汐預報.png", "url": "https://bear.emic.gov.tw/BearBack/uploadFile/mmLayer/kml/步道.kml", "type": "json", 'function': seaTideForecast},
+  {'name': "淹水警戒", "layerName": "env-floodAlertlayer", "imgUrl":"/webdemo/gis119wei/weather/淹水警戒.png", "url": "http://fhy.wra.gov.tw/pub_web_2011/kml/KmlShare/NewstFloodWarm.kml", "type": "kml", 'function': floodAlert},
+  {'name': "颱風特報", "layerName": "env-dgdptyphoonlayer", "imgUrl":"/webdemo/gis119wei/weather/颱風.png", "url": "https://bear.emic.gov.tw/BearBack/uploadFile/mmLayer/kml/步道.kml", "type": "kml", 'function': typephoon},
+  {'name': "土石潛勢", "layerName": "env-rockslidelayer", "imgUrl":"/webdemo/gis119wei/weather/土石潛勢.png", "url": "https://wmts.nlsc.gov.tw/wmts/MUDSLIDE_PG/default/EPSG:3857/{z}/{y}/{x}", "type": "tile", 'function': rockslide},
+  {'name': "地質敏感", "layerName": "env-sensitivelayer", "imgUrl":"/webdemo/gis119wei/weather/地質敏感.png", "url": "https://wmts.nlsc.gov.tw/wmts/GeoSensitive/default/EPSG:3857/{z}/{y}/{x}", "type": "tile", 'function': sensitive},
+];
+
+//產出地圖工具按鈕
+function createWeather(){
+  let content = document.querySelector('#weathercontent');
+  for (let i=0;i<weatherInfo.length;i++){
+    let label = document.createElement('label');label.setAttribute('class','item');
+    label.innerHTML = `<input type="checkbox" id="weather-${i}" onchange="legendBtn(this.checked, '${weatherInfo[i]['layerName']}', '${weatherInfo[i]['imgUrl']}', '${weatherInfo[i]['name']}', 'weather', '${i}'); weatherLayerCtl(this.checked, ${i})" ><div class="iconContent"><img src="${weatherInfo[i]['imgUrl']}"><div class="name">${weatherInfo[i]['name']}</div></div><span class="tooltiptext">${weatherInfo[i]['name']}</span>`;
+    content.append(label);
+    
+    // 顯示該圖層文字
+    label.addEventListener('mouseenter', () => {
+      label.parentElement.nextElementSibling.style.visibility = 'visible';
+      label.parentElement.nextElementSibling.innerText = `${weatherInfo[i]['name']}`
+    });
+    label.addEventListener('mouseleave', () => {
+      label.parentElement.nextElementSibling.style.visibility = 'hidden';
+    });
+  }
+}
+// 加入圖層checkif, layerName, imgUrl, type
+function weatherLayerCtl(checkif,arrNum){
+  if (checkif){
+    weatherInfo[arrNum]['function'](true, arrNum);
+  }else{
+    let i=map.getLayers().getArray();
+    if (weatherInfo[arrNum]['layerName'].indexOf('dgdptyphoon')>=0){// 颱風相關
+      for (let ii=1; ii<=2; ii++) { 
+        for (let j=0; j<i.length; j++) {
+          if(i[j].get("name") && i[j].get("name")=='dgdptyphoon'+ii) {map.removeLayer(i[j]); break;}
+        }; 
+      };
+    }else{
+      for (let j=0; j<i.length; j++) {
+        if(i[j].get("name") && i[j].get("name")==weatherInfo[arrNum]['layerName']) {map.removeLayer(i[j]); break;}
+      }; 
+    }
+  }
+}
+createWeather();
+/////////////------------------環境資訊  END----------------------------------/////////////////
+
+/////////////------------------EMIC  START----------------------------------/////////////////
+// EMIC 相關 function start
+let getcctvdata = function(checkif, num){
+  if (checkif){
+    let cctvlayer = new ol.layer.Vector({source:new ol.source.Vector(),renderMode:'vector',declutter:true, zIndex: 12, style:new ol.style.Style({image:new ol.style.Icon(({anchor:[0.5,46],anchorXUnits:"fraction",anchorYUnits:"pixels",src:`${emicLayerData[num]['imgUrl']}`,scale:0.25, }))}),name:`${emicLayerData[num]['layerName']}`});	
+    document.querySelector('.loadingBlock').style.display = 'flex';
+    $.ajax({url:"200.kml",type: "GET",timeout: 1000,
+      error: function(xml){alert("讀取xml錯誤"+xml);},
+      success: function(xml){
+        cctvlayer.getSource().clear();
+        let placemarks = $(xml).find("Placemark");
+        for (let i=0; i<placemarks.length; i++){
+          let coordinateArr = $(placemarks[i]).find("coordinates").text().split(",");
+          let coordinates = ol.proj.fromLonLat([coordinateArr[0], coordinateArr[1]]);
+          cctvlayer.getSource().addFeature(new ol.Feature({geometry:new ol.geom.Point(coordinates),name: $(placemarks[i]).find("name").text(),stream: $(placemarks[i]).find("description").text()
+          }));
+        }
+        document.querySelector('.loadingBlock').style.display = 'none';
+      }
+    })
+    map.addLayer(cctvlayer);
+  }else{
+    document.querySelector('.cctvBox').style.left = '-400px';
+  }
+}
+// point相關
+let emicKmlPointLayer = function (checkif, num){
+  if (checkif){
+    map.addLayer(new ol.layer.Vector({source:new ol.source.Vector({url: emicLayerData[num]['url'], format:new ol.format.KML({extractStyles: false}),crossOrigin:'anonymous'}),zIndex:11,name:`${emicLayerData[num]['layerName']}`, declutter: true, style:new ol.style.Style({image:new ol.style.Icon(({anchor:[0.5,46],anchorXUnits:"fraction",anchorYUnits:"pixels",src: `${emicLayerData[num]['imgUrl']}`,scale:0.25}))}) }));
+  }
+}
+// line相關
+let emicKmlLineLayer = function (checkif, num){
+  if (checkif){
+    map.addLayer(new ol.layer.Vector({source:new ol.source.Vector({url: emicLayerData[num]['url'], format:new ol.format.KML(),crossOrigin:'anonymous'}),zIndex:11,name:  emicLayerData[num]['layerName'], declutter: true }));
+  }
+}
+// tile相關 
+let emicTileLayer = function(checkif, num){
+  if(checkif){
+    map.addLayer(new ol.layer.Tile({zIndex:50, source: new ol.source.XYZ({url: emicLayerData[num]['url'],crossOrigin:'anonymous'}), name: emicLayerData[num]['layerName']}));
+  }
+}
+// EMIC 相關 function end
+
+// EMIC data
+let emicLayerData=[
+  {'name': "CCTV", "layerName": "emiccctvlayer", "imgUrl":"/webdemo/gis119wei/emic/cctv.png", "url": "", "type": "function" , 
+  "function": getcctvdata},
+  {'name': "開放釣點", "layerName": "emichooklayer", "imgUrl":"/webdemo/gis119wei/emic/hook.png", "url": "https://bear.emic.gov.tw/BearBack/uploadFile/mmLayer/kml/%E5%85%A8%E5%8F%B0%E9%96%8B%E6%94%BE%E9%87%A3%E9%BB%9E%E4%BD%8D%E7%BD%AE.kml", "type": "kml", "function": emicKmlPointLayer},
+  {'name': "步道", "layerName": "emictraillayer", "imgUrl":"/webdemo/gis119wei/emic/trail.png", "url": "https://bear.emic.gov.tw/BearBack/uploadFile/mmLayer/kml/步道.kml", "type": "pointkml", 'function': emicKmlLineLayer},
+  {'name': "活動斷層", "layerName": "emicfaultlayer", "imgUrl":"/webdemo/gis119wei/emic/clip.png", "url": "https://gis2.emic.gov.tw/EMICDataStatic/%E6%B4%BB%E5%8B%95%E6%96%B7%E5%B1%A4.kml", "type": "linekml", "function": emicKmlLineLayer},
+  {'name': "崩塌潛勢", "layerName": "emicrisklayer", "imgUrl":"/webdemo/gis119wei/emic/崩塌潛勢.png", "url": "https://bear.emic.gov.tw/BearBack/uploadFile/mmLayer/kml/水保局大規模崩塌淺勢區.kml", "type": "kml", "function": emicKmlLineLayer},
+  {'name': "戰時收容所", "layerName": "emicwartmplayer", "imgUrl":"/webdemo/gis119wei/emic/war_tmp.png", "url": "https://gis2.emic.gov.tw/emict/modules/easymap/services/proxy.aspx?url=http://localhost/EMICData/157.kml", "type": "pointkml", "function": emicKmlPointLayer},
+  {'name': "異常波浪", "layerName": "emicwaveissuelayer", "imgUrl":"/webdemo/gis119wei/emic/異常波浪.png", "url": "https://easymap.gis.tw/mymap/crawler/ocean_cwb_wave.php", "type": "kml", "function": emicKmlLineLayer},
+  {'name': "地震", "layerName": "emicearthquakelayer", "imgUrl":"/webdemo/gis119wei/emic/地震.png", "url": "https://gis2.emic.gov.tw/EMICData/182.kml", "type": "kml", "function": emicKmlPointLayer},
+  {'name': "土石流潛勢溪", "layerName": "emiclandslidelayer", "imgUrl":"/webdemo/gis119wei/emic/土石流潛勢溪.png", "url": "https://gis2.emic.gov.tw/emict/uploadFile/mmlayer/kml/debrisarea.kml", "type": "kml", "function": emicKmlLineLayer},
+  {'name': "Google路況", "layerName": "emicroadstatuslayer", "imgUrl":"/webdemo/gis119wei/emic/road2.png", "url": "https://mts0.google.com/vt?hl=zh-TW&src=app&x={x}&y={y}&z={z}&s=Galil&lyrs=h@248149186,traffic|seconds_into_week:-1&style=15", "type": "tile", "function": emicTileLayer},
+  {'name': "應變城市", "layerName": "emicresponsecitylayer", "imgUrl":"/webdemo/gis119wei/emic/應變城市.png", "url": "https://gis2.emic.gov.tw/emict/modules/easymap/services/proxy.aspx?url=http://localhost/EMIC_Transfer/WebService/WSTransfer.ashx[question]op=GET[and]SN=195[and]key=2BE8FD2FEEAEF1AB[and]F1=", "type": "kml", "function": emicKmlLineLayer},
+  {'name': "災情", "layerName": "emicriskloclayer", "imgUrl":"/webdemo/gis119wei/emic/災情.png", "url": "https://gis2.emic.gov.tw/emict/modules/easymap/services/proxy.aspx?url=http://localhost/EMIC_Transfer/WebService/WSTransfer.ashx[question]op=GET[and]SN=372[and]key=A517BF73C90519F6[and]F1=2022-11-30%2000:00:00[and]F2=2022-11-30%2023:59:59[and]F3=[and]F4=[and]F5=", "type": "kml", "function": emicKmlPointLayer},
+  {'name': "聯外孤島", "layerName": "emicisolatedlinklayer", "imgUrl":"/webdemo/gis119wei/emic/聯外孤島.png", "url": "https://gis2.emic.gov.tw/emict/modules/easymap/services/proxy.aspx?url=http://localhost/EMIC_Transfer/WebService/WSTransfer.ashx[question]op=GET[and]SN=411[and]key=9BF5E5083CC2705E[and]F1=[and]F2=", "type": "kml", "function": emicKmlLineLayer},
+  {'name': "交通阻斷", "layerName": "emictrafficblocklayer", "imgUrl":"/webdemo/gis119wei/emic/交通阻斷.png", "url": "https://gis2.emic.gov.tw/emict/modules/easymap/services/proxy.aspx?url=http://localhost/EMICData/183.kml", "type": "kml", "function": emicKmlPointLayer},
+  {'name': "孤島整備", "layerName": "emicisolatedprelayer", "imgUrl":"/webdemo/gis119wei/emic/孤島整備.png", "url": "https://gis2.emic.gov.tw/emict/modules/easymap/services/proxy.aspx?url=http://localhost/EMIC_Transfer/WebService/WSTransfer.ashx[question]op=GET[and]SN=412[and]key=602EF1456B05A628[and]F1=%27%27[and]F2=%27%27", "type": "kml", "function": emicKmlPointLayer},
+  {'name': "水庫範圍", "layerName": "emicreservoirrangelayer", "imgUrl":"/webdemo/gis119wei/emic/水庫範圍.png", "url": "https://gis2.emic.gov.tw/emict/modules/easymap/services/proxy.aspx?url=http://localhost/EMICT/uploadFile/mmlayer/kml/%E6%B0%B4%E5%BA%AB.kml", "type": "kml", "function": emicKmlLineLayer},
+  {'name': "縣市河川", "layerName": "emiccityriverlayer", "imgUrl":"/webdemo/gis119wei/emic/縣市河川.png", "url": "https://gis2.emic.gov.tw/emict/modules/easymap/services/proxy.aspx?url=http://localhost/EMICData/211.kml", "type": "kml", "function": emicKmlPointLayer},
+  {'name': "中央管河川", "layerName": "emiccenterriverlayer", "imgUrl":"/webdemo/gis119wei/emic/中央管河川.png", "url": "https://gis2.emic.gov.tw/emict/modules/easymap/services/proxy.aspx?url=http://localhost/EMICData/216.kml", "type": "kml", "function": emicKmlPointLayer},
+  {'name': "水庫資訊", "layerName": "emicreservoirinfolayer", "imgUrl":"/webdemo/gis119wei/emic/水庫資訊.png", "url": "https://gis2.emic.gov.tw/emict/modules/easymap/services/proxy.aspx?url=http://localhost/EMICData/152.kml", "type": "kml", "function": emicKmlPointLayer},
+];
+//產出EMIC按鈕
+function createEmicLayer(){
+  let content = document.querySelector('#emiccontent');
+  for (let i=0;i<emicLayerData.length;i++){
+    let label = document.createElement('label');label.setAttribute('class','item');
+    label.innerHTML = `<input type="checkbox" onchange="legendBtn(this.checked, '${emicLayerData[i]['layerName']}', '${emicLayerData[i]['imgUrl']}', '${emicLayerData[i]['name']}'); emicLayerCtl(this.checked, ${i});" ><div class="iconContent"><img src="${emicLayerData[i]['imgUrl']}"><div class="name">${emicLayerData[i]['name']}</div></div><span class="tooltiptext">${emicLayerData[i]['name']}</span>`;
+    content.append(label);
+
+    // 顯示該圖層文字
+    label.addEventListener('mouseenter', () => {
+      label.parentElement.nextElementSibling.style.visibility = 'visible';
+      label.parentElement.nextElementSibling.innerText = `${emicLayerData[i]['name']}`
+    });
+    label.addEventListener('mouseleave', () => {
+      label.parentElement.nextElementSibling.style.visibility = 'hidden';
+    });
+  }
+}
+// 加入圖層checkif, layerName, imgUrl, type
+function emicLayerCtl(checkif,arrNum){
+  // console.log(emicLayerData[arrNum]['layerName'])
+  if (checkif){
+    emicLayerData[arrNum]['function'](true, arrNum);
+  }else{
+    // console.log(arrNum);
+    emicLayerData[arrNum]['function'](false, arrNum);
+    let i=map.getLayers().getArray();
+    for (let j=0; j<i.length; j++) {
+      if(i[j].get("name") && i[j].get("name")==emicLayerData[arrNum]['layerName']) {map.removeLayer(i[j]); break;}
+    }; 
+  }
+}
+
+createEmicLayer();//產出EMIC按鈕
+/////////////------------------EMIC  END----------------------------------/////////////////
+
+/////////////------------------淹水資訊  START----------------------------------/////////////////
+// 淹水潛勢圖
+function getfloodpotential(checkif){
+  if(checkif){
+    let hour = document.getElementById('floodpothr').value;
+    let deep =  document.getElementById('floodpotmm').value;
+    floodpotential.setSource(new ol.source.XYZ({url:`https://giso.emic.gov.tw/EMICDataStatic/EMIC_CACHE/${hour}H/${deep}M/GoogleTile/Png/{z}/{x}/z{z}x{x}y{y}.png`,crossOrigin:'anonymous'}));
+    floodpotential.setVisible(true);
+  }else{
+    floodpotential.setVisible(false);
+  }
+}
+// 修正淹水潛勢對應毫米
+function checkfloodpotOption(){
+  let select = document.getElementById('floodpotmm');
+  let optionValue = document.getElementById('floodpothr').value;//取得小時數
+  let options = document.querySelectorAll('#floodpotmm option');//刪除原本的選項
+  options.forEach(element => {element.remove();})
+  let timeArr=[];
+  if (optionValue == '6'){timeArr = ['150','250','350'];}
+  else if (optionValue == '12'){timeArr = ['200','300','400'];}
+  else if (optionValue == '24'){timeArr = ['200','350','500','650'];}
+  timeArr.forEach(element => {
+    let option = document.createElement('option');
+    option.setAttribute('value', element);
+    option.innerText = element;
+    select.append(option);
+  });
+  getfloodpotential(document.getElementById('switch-flood').checked);
+}
+
+// 定量降雨淹水預測
+function getqpeflood(checkif){
+  let i=map.getLayers().getArray();
+  if (checkif) {
+    let hour = document.getElementById('qpefloodhr').value;
+    let deep =  document.getElementById('qpefloodmm').value;
+    for (let j=0; j<i.length; j++) {if(i[j].get("name") && i[j].get("name").indexOf(`qpeflood`)>=0) {map.removeLayer(i[j]); break;}}; 
+    map.addLayer(new ol.layer.Vector({source:new ol.source.Vector({url:`https://gis2.emic.gov.tw/emict/modules/easymap/services/proxy.aspx?url=https://giso.emic.gov.tw/emicm/webpages/QpeFloodKML.aspx[question]HrType=${hour}[and]RainType=${deep}[and]KMLType=0`,format:new ol.format.KML(),crossOrigin:'anonymous'}),zIndex:11,name:`qpeflood${hour}H${deep}mm`}));
+  } else {
+    for (let j=0; j<i.length; j++) {if(i[j].get("name") && i[j].get("name").indexOf(`qpeflood`)>=0) {map.removeLayer(i[j]); break;}}; 
+  };
+}
+// 修正定量降雨淹水預測對應毫米
+function checkQpeOption(){
+  let select = document.getElementById('qpefloodmm');
+  let optionValue = document.getElementById('qpefloodhr').value;//取得小時數
+  let options = document.querySelectorAll('#qpefloodmm option');//刪除原本的選項
+  options.forEach(element => {element.remove();})
+  let timeArr=[];
+  if (optionValue == '6'){timeArr = ['10','150','250','350'];}
+  else if (optionValue == '12'){timeArr = ['10','200','400'];}
+  else if (optionValue == '24'){timeArr = ['10','200','350','500','650'];}
+  timeArr.forEach(element => {
+    let option = document.createElement('option');
+    option.setAttribute('value', element);
+    option.innerText = element;
+    select.append(option);
+  });
+  getqpeflood(document.getElementById('switch-qpe').checked)
+}
+
+/////////////------------------淹水資訊  END----------------------------------/////////////////
+
+/////////////------------------地圖工具  START----------------------------------/////////////////
+
+// 計算座標或轉換經緯度
+function calsCoord(){
+  let transfer= new ol.proj.transform(tmpCasePos, 'EPSG:3857', document.getElementById('diffCoord').value);
+  if(document.getElementById('diffCoord').value == 'EPSG:4326'){
+    document.getElementById('diffType').disabled=false;
+    if (document.getElementById('diffType').value == '度'){
+      document.getElementById('calsCoordResult').innerText = `${ (transfer[0]).toFixed(3)}E, ${(transfer[1]).toFixed(3)}N`;
+    }else if(document.getElementById('diffType').value == '度分'){
+      document.getElementById('calsCoordResult').innerText = `${(~~transfer[0])}°${("00"+((transfer[0]%1)*60).toFixed(2)).slice(-5)}E, ${(~~transfer[1])}°${("00"+((transfer[1]%1)*60).toFixed(2)).slice(-5)}N`;
+    }else if(document.getElementById('diffType').value == '度分秒'){
+      document.getElementById('calsCoordResult').innerText = (~~transfer[0])+"°"+("00"+(~~((transfer[0]-~~transfer[0])*60)).toString()).slice(-2)+"'"+("00"+(~~((((transfer[0]-~~transfer[0])*60)-(~~((transfer[0]-~~transfer[0])*60)))*60)).toString()).slice(-2)+'"E, '+(~~transfer[1])+"°"+("00"+(~~((transfer[1]-~~transfer[1])*60)).toString()).slice(-2)+"'"+("00"+(~~((((transfer[1]-~~transfer[1])*60)-(~~((transfer[1]-~~transfer[1])*60)))*60)).toString()).slice(-2)+'"N';
+    }else if (document.getElementById('diffType').value == '南北島圖'){
+      let newCoord = new ol.proj.transform([(transfer[0]).toFixed(3), (transfer[1]).toFixed(3)],'EPSG:4326','EPSG:3825');
+      document.getElementById('calsCoordResult').innerText = `${fnGetNSIland(newCoord[0], newCoord[1])}`
+    }
+  }else{
+    document.getElementById('diffType').disabled=true;
+    document.getElementById('calsCoordResult').innerText= `${ (transfer[0]).toFixed(5)}, ${(transfer[1]).toFixed(5)}`;
+  }
+}
+
+// 南北島轉換公式
+function fnGetNSIland(x, y) {
+  //let x=219698.555;
+  //let y=2672577.859;
+  try { } catch (err) { }
+  let MAP5 = "-------@@- -----@@@@@ -----@@@@@ ----@@@@@- ----@@@@@- ---@@@@@@- ---@@@@@@- --@@@@@@@- --@@@@@@@- --@@@@@@-- -@@@@@@@-- -@@@@@@@-- -@@@@@@@-- @@@@@@@@-- -@@@@@@@-- @@@@@@@--- @@@@@@@--- -@@@@@@--- -@@@@@@--- -@@@@@---- -@@@@----- --@@@----- ---@@----- ---@------";
+  let MAP10 = "----@- ---@@@ --@@@@ --@@@@ -@@@@@ -@@@@- -@@@@- @@@@@- @@@@@- @@@@@- @@@@-- -@@@-- -@@@-- --@--- --@---";
+  //97轉67
+  let A = 0.00001549;
+  let B = 0.000006521;
+  x = parseFloat(x) - 807.8 - parseFloat(A) * x - parseFloat(B) * y;
+  y = parseFloat(y) + 248.6 - parseFloat(A) * parseFloat(y) - parseFloat(B) * parseFloat(x);
+  x = parseInt(x);
+  y = parseInt(y);
+  // document.getElementById("SNIsland").innerHTML = "";
+  //##50000
+  {
+
+    let page, yl, yp;
+    let xp = x - 138000;
+    if (y <= 2439000) {    //#南島71圖頭行座標「斷層」
+      page = 132;
+      yl = (2439000 - y) / 1000;
+    } else {
+      yp = 2799000 - y;
+      let page1 = MAP5.substring(0, 1 + parseInt(xp / 22000) + 11 * parseInt(yp / 15000));
+      page1 = page1.replace(/ /g, "");
+      page1 = page1.replace(/-/g, "");
+      page = page1.length;
+      yl = yp % 15000 / 1000 + 1;
+
+    }
+    let r1 = (page > 61) ? "南" : "北";
+    let r2 = (page > 61) ? page - 61 : page;
+    let r3 = 65 + (page > 130 ? xp - 13000 : xp) % 22000 / 1000;
+
+    //輸出 1:50000
+    //document.write("1:50000 "+r1+"島"+parseInt(r2)+"圖"+String.fromCharCode(parseInt(r3))+parseInt(yl));
+    //document.getElementById("SNIsland").innerHTML="1:50000 "+r1+"島"+parseInt(r2)+"圖"+String.fromCharCode(parseInt(r3))+parseInt(yl);
+    // document.getElementById("SNIsland").innerHTML = "" + r1 + "島" + parseInt(r2) + "頁" + String.fromCharCode(parseInt(r3)) + parseInt(yl) + "方格";
+    return "1:50000 "+r1+"島"+parseInt(r2)+"圖"+String.fromCharCode(parseInt(r3))+parseInt(yl);
+    // console.log("1:50000 "+r1+"島"+parseInt(r2)+"圖"+String.fromCharCode(parseInt(r3))+parseInt(yl))
+    //document.write("<br>");
+  }
+  //##1/100000
+  {
+    let xp = x - 130000;
+    let yp = 2812000 - y;
+    let r1 = MAP10.substring(0, 1 + 7 * parseInt(yp / 26000) + parseInt(xp / 38000));
+
+    r1 = r1.replace(/ /g, "");
+    r1 = r1.replace(/-/g, "");
+    let r2 = 65 + xp % 38000 / 2000;
+    let r3 = 2 + yp % 26000 / 2000;
+    //輸出 1:100000
+    //document.write("1:100000  "+r1.length+"圖"+String.fromCharCode(parseInt(r2))+parseInt(r3));
+    // console.log("1:100000  "+r1.length+"圖"+String.fromCharCode(parseInt(r2))+parseInt(r3))
+    //document.getElementById("SNIsland").innerHTML = document.getElementById("SNIsland").innerHTML +  "<BR>1:100000  "+r1.length+"圖"+String.fromCharCode(parseInt(r2))+parseInt(r3);
+  }
+}
+
+// 複製座標
+function copyCoord(){
+  let copyText = document.getElementById("calsCoordResult");
+  navigator.clipboard.writeText(copyText.innerText);
+}
+
+// 測量 start
+let iomeas=false; let sourcemeas=new ol.source.Vector();
+let vectormeas=new ol.layer.Vector({source:sourcemeas,zIndex:32,style:function (feature) {return styleFunction(feature,true)}});
+
+const stylemeas=new ol.style.Style({
+  fill:new ol.style.Fill({color:'rgba(255,255,255,0.2)'}),stroke:new ol.style.Stroke({color:'rgba(255,0,0,.8)',lineDash:[10,10],width:2}),
+  image:new ol.style.Circle({radius:5,stroke:new ol.style.Stroke({color:'#000'}),fill:new ol.style.Fill({color:'rgba(255,255,255,.2)'})})
+});
+const labelStyle=new ol.style.Style({text:new ol.style.Text({font:'24px Calibri,sans-serif',fill:new ol.style.Fill({color:'#fff'}),
+  backgroundFill:new ol.style.Fill({color:'rgba(0,0,0,0.7)'}),padding:[3,3,3,3],textBaseline:'bottom',offsetY:-15,overflow:true,
+  backgroundStroke:new ol.style.Stroke({color:'#f00',width:1})}),image:new ol.style.RegularShape({radius:8,points:3,angle:Math.PI,
+  displacement:[0,10],fill:new ol.style.Fill({color:'rgba(255,0,0,.7)'}),stroke:new ol.style.Stroke({color:'#000',width:2})})
+});
+const tipStyle=new ol.style.Style({text:new ol.style.Text({font:'16px Calibri,sans-serif',fill:new ol.style.Fill({color:'#fff'}),
+  backgroundFill:new ol.style.Fill({color:'rgba(0,0,0,.4)'}),padding:[2,2,2,2],textAlign:'left',offsetX:15})
+});
+const modifyStyle=new ol.style.Style({
+  image:new ol.style.Circle({radius:5,stroke:new ol.style.Stroke({color:'rgba(0,0,0,0.7)'}),fill:new ol.style.Fill({color:'#0f0'})}),
+  text:new ol.style.Text({text:'拖曳調整',font:'20px Calibri,sans-serif',fill:new ol.style.Fill({color:'#0f0'}),
+  backgroundFill:new ol.style.Fill({color:'rgba(0,0,0,.7)'}),padding:[2,2,2,2],textAlign:'left',offsetX:15})
+});
+const segmentStyle=new ol.style.Style({text:new ol.style.Text({font:'16px Calibri,sans-serif',fill:new ol.style.Fill({color:'#fff'}),
+  backgroundFill:new ol.style.Fill({color:'rgba(0,0,0,.7)'}),padding:[0,2,0,2],textBaseline:'bottom',offsetY:-12,overflow:true,
+  backgroundStroke:new ol.style.Stroke({color:'#f00',width:1})}),
+  image:new ol.style.RegularShape({radius:6,points:3,angle:Math.PI,displacement:[0,8],fill:new ol.style.Fill({color:'rgba(255,0,0,.4)'})})
+});
+const segmentStyles=[segmentStyle];
+const formatLength=function (line) {const lengthmeas=ol.sphere.getLength(line); let output;
+  if (lengthmeas>100) {output=Math.round((lengthmeas/1000)*100)/100+' km';} else {output=Math.round(lengthmeas*100)/100+' m';}; return output;
+};
+const formatArea=function (polygon) {const areameas=ol.sphere.getArea(polygon); let output;
+  if (areameas>10000) {output=Math.round((areameas/1000000)*100)/100+' km\xB2';} else {output=Math.round(areameas*100)/100+' m\xB2';}
+  return output;
+};
+let tipPoint;
+function styleFunction(feature,segments,drawType,tip) {
+  const stylemeass=[stylemeas]; const geometrymeas=feature.getGeometry(); const typemeas=geometrymeas.getType();
+  let point,label,line;
+  if (!drawType || drawType===typemeas) {
+    if (typemeas==='Polygon') {
+      point=geometry.getInteriorPoint(); label=formatArea(geometrymeas); line=new ol.geom.LineString(geometrymeas.getCoordinates()[0]);
+    } else if (typemeas==='LineString') {
+      point=new ol.geom.Point(geometrymeas.getLastCoordinate()); label=formatLength(geometrymeas); line=geometrymeas;
+    };
+  };
+  if (segments && line) {
+    let count=0;
+    line.forEachSegment(function (a,b) {
+      const segment=new ol.geom.LineString([a,b]); const label=formatLength(segment);
+      if (segmentStyles.length- 1 < count) { segmentStyles.push(segmentStyle.clone()); }
+      const segmentPoint=new ol.geom.Point(segment.getCoordinateAt(0.5));
+      segmentStyles[count].setGeometry(segmentPoint); segmentStyles[count].getText().setText(label); stylemeass.push(segmentStyles[count]);
+      count++;
+    });
+  };
+  if (label) {labelStyle.setGeometry(point); labelStyle.getText().setText(label); stylemeass.push(labelStyle); };
+  if (tip && typemeas==='Point' && !modifymeas.getOverlay().getSource().getFeatures().length) {
+    tipPoint=geometrymeas; tipStyle.getText().setText(tip); stylemeass.push(tipStyle);
+  };
+  return stylemeass;
+};
+let modifymeas=new ol.interaction.Modify({source:sourcemeas,style:modifyStyle});
+map.addInteraction(modifymeas);
+
+let drawmeas;
+function addInteractionmeas() {
+  const drawType='LineString';
+  const activeTip='點擊繪製'+(drawType==='Polygon'?'多邊形':'線段');
+  const idleTip='點擊以開始測量';
+  let tip=idleTip;
+  drawmeas=new ol.interaction.Draw({source:sourcemeas,type:drawType,style:function (feature){return styleFunction(feature,true,drawType,tip)}});
+  drawmeas.on('drawstart',function () { modifymeas.setActive(false); tip=activeTip;});
+  drawmeas.on('drawend', function () { modifyStyle.setGeometry(tipPoint); modifymeas.setActive(true);
+    map.once('pointermove', function () { modifyStyle.setGeometry();}); tip=idleTip;
+  });
+  modifymeas.setActive(true);
+  map.addInteraction(drawmeas);
+};
+function toggleMeasure(a, e) {
+  // document.querySelector('label[for="btnmaptool1"]').style.color=a?'#f4be18':'';
+  if (a) {addInteractionmeas(); map.addLayer(vectormeas);} 
+  else {map.removeInteraction(drawmeas); modifymeas.setActive(false); sourcemeas.clear(); vectormeas.changed();map.removeLayer(vectormeas);};
+};
+// 測量 end
+
+// 標記點位
+let freehand,freehandvec;
+function toggleFreehand(a) {
+  if (a) {
+    document.querySelector('.drawBox').style.bottom = '10px';
+    let s = [new ol.style.Style({ stroke:new ol.style.Stroke({ width:5, color:'#000' }) }), new ol.style.Style({ stroke:new ol.style.Stroke({ width:3, color:$('input[name="drawColorRadio"]:checked').val() }), image:new ol.style.Circle({ radius:8, fill:new ol.style.Fill({ color: $('input[name="drawColorRadio"]:checked').val() }), stroke:new ol.style.Stroke({ width:2, color:'#000' }) }) })];
+    freehandvec = new ol.layer.Vector({ source:new ol.source.Vector(), style:s, zIndex:16, renderMode:'image' });
+    freehand = new ol.interaction.Draw({ source:freehandvec.getSource(), freehand:true, type:'LineString', style:s });
+    map.addLayer(freehandvec); map.addInteraction(freehand);
+  } else {
+    document.querySelector('.drawBox').style.bottom = '-200px';
+    if (freehand) { map.removeInteraction(freehand); freehandvec.setSource(null); map.removeLayer(freehandvec); };
+  };
+};//end of func toggleFreehand
+function switchFreehandColor(){
+  map.removeInteraction(freehand); 
+  let style = [new ol.style.Style({ stroke:new ol.style.Stroke({ width:5, color:'#000' }) }), new ol.style.Style({ stroke:new ol.style.Stroke({ width:3, color:$('input[name="drawColorRadio"]:checked').val() }), image:new ol.style.Circle({ radius:8, fill:new ol.style.Fill({ color: $('input[name="drawColorRadio"]:checked').val() }), stroke:new ol.style.Stroke({ width:2, color:'#000' }) }) })];
+  freehand = new ol.interaction.Draw({ source:freehandvec.getSource(), freehand:true, type:'LineString', style:style });
+  map.addInteraction(freehand);
+
+  if(freehand){
+    freehand.on('drawend', function(e) {
+      let style = [new ol.style.Style({ stroke:new ol.style.Stroke({ width:5, color:'#000' }) }), new ol.style.Style({ stroke:new ol.style.Stroke({ width:3, color:$('input[name="drawColorRadio"]:checked').val() }), image:new ol.style.Circle({ radius:8, fill:new ol.style.Fill({ color: $('input[name="drawColorRadio"]:checked').val() }), stroke:new ol.style.Stroke({ width:2, color:'#000' }) }) })];
+      e.feature.setStyle(style);
+    });
+  }
+}
+
+// 截圖工具
+function takePicture(format='png'){
+  let domElement = document.getElementById('map');
+  let picName = `${new Date().getTime()}`
+  // html to canvas
+  html2canvas(domElement, { allowTaint: false,useCORS: true,scale: 3,}).then(function (canvas) {
+    if (format == 'png' || format == 'jpg'){
+      let aTag = document.createElement("a");
+      aTag.href = canvas.toDataURL(`image/${format}`);
+      aTag.download = `${picName}.${format}`;
+      aTag.click();
+    }
+  });
+}
+
+function switchTakePicBox(checkif){
+  if(checkif){document.querySelector('.takePicBox').style.bottom = '10px';}
+  else{document.querySelector('.takePicBox').style.bottom = '-100px';}
+}
+
+
+
+// Print control
+let printControl = new ol.control.Print();
+map.addControl(printControl);
+
+// let printControl = new ol.control.PrintDialog(('tw', {'title': '標題', 'printBt':'列印'}));
+// printControl.setSize('A4');
+// map.addControl(printControl);
+
+
+/* On print > save image file */
+printControl.on('printing', function(e) {
+  $('body').css('opacity', .5);
+});
+printControl.on(['print', 'error'], function(e) {
+  $('body').css('opacity', 1);
+  // Print success
+  if (e.image) {
+    if (e.pdf) {
+      // Export pdf using the print info
+      let pdf = new jsPDF({
+        orientation: e.print.orientation,
+        unit: e.print.unit,
+        format: e.print.size
+      });
+      pdf.addImage(e.image, 'JPEG', e.print.position[0], e.print.position[0], e.print.imageWidth, e.print.imageHeight);
+      pdf.save();
+    } else  {
+      console.log(e)
+      // if ($('#file').prop('checked')) {
+      if (e.printType == 'png' || e.printType == 'jpg'){
+        e.canvas.toBlob(function(blob) {
+          saveAs(blob, 'map.'+e.imageType.replace('image/',''));
+        }, e.imageType);
+      } else if(e.printType == 'print'){
+        // $(e.canvas.toDataURL('image/png')).print()
+        // $(printJS('printElement', 'html')
+        let data = e.canvas.toDataURL();
+        let html  = '<html><head><title></title></head>';
+            html += '<body style="width: 100%; padding: 0; margin: 0;"';
+            html += ' onload="window.focus(); window.print(); window.close()">';
+            html += '<img src="' + data + '" /></body></html>';
+
+        let printWindow = window.open('', 'to_print', 'height=600,width=800');
+
+        printWindow.document.open();
+        printWindow.document.write(html);
+        printWindow.document.close();
+        // printWindow.close();
+      } else {
+        $('#image img').attr('src', e.image);
+      }
+    }
+  } else {
+    console.warn('No canvas to export');
+  }
+});
+
+// printControl.on(['print', 'error'], function(e) {
+//   // Print success
+//   if (e.image) {
+//     if (e.pdf) {
+//       // Export pdf using the print info
+//       let pdf = new jsPDF({
+//         orientation: e.print.orientation,
+//         unit: e.print.unit,
+//         format: e.print.size
+//       });
+//       pdf.addImage(e.image, 'JPEG', e.print.position[0], e.print.position[0], e.print.imageWidth, e.print.imageHeight);
+//       pdf.save(e.print.legend ? 'legend.pdf' : 'map.pdf');
+//     } else  {
+//       // Save image as file
+//       console.log(e);
+//       e.canvas.toBlob(function(blob) {
+//         let name = (e.print.legend ? 'legend.' : 'map.')+e.imageType.replace('image/','');
+//         saveAs(blob, name);
+//       }, e.imageType, e.quality);
+//     }
+//   } else {
+//     console.warn('No canvas to export');
+//   }
+// });
+
+
+function printDiv() {
+  // let domElement = document.getElementById('map');
+  // let picName = `${new Date().getTime()}`
+  // html to canvas
+  html2canvas(domElement, { allowTaint: false,useCORS: true,scale: 3,}).then(function (canvas) {
+      // let aTag = document.createElement("a");
+      // aTag.href = canvas.toDataURL(`image/${format}`);
+      // aTag.download = `${picName}.${format}`;
+      // aTag.click();
+
+
+      // let printContents = document.querySelector('#map .ol-viewport').innerHTML;
+      // let originalContents = document.body.innerHTML;
+      // document.body.innerHTML = printContents;
+      // window.print();
+      // document.body.innerHTML = originalContents;
+
+      w=window.open();
+      w.document.write($('#map').html());
+      w.print();
+      w.close();
+  });
+
+  // w=window.open();
+  // w.document.write($('#map').html());
+  // w.print();
+  // w.close();
+}
+
+
+
+
+
+/////////////------------------地圖工具  END----------------------------------/////////////////
+
+/////////------------------底圖切換  START----------------------------------/////////////////
+let baselayerurl=[
+  {"name": "MDS", "url": "https://bot.mds.com.tw/webdemo/gisdata1/mdsall/{z}/{x}/{y}.png","imgUrl": "/webdemo/gis119wei/baselayer/6_1.png"},//0.mds全台
+  {"name": "通用地圖", "url": "https://wmts.nlsc.gov.tw/wmts/EMAP5/default/EPSG:3857/{z}/{y}/{x}", "imgUrl": "/webdemo/gis119wei/baselayer/1_1.png"},//0.MOI 18
+  {"name": "灰色地圖", "url": "https://wmts.nlsc.gov.tw/wmts/EMAP01/default/EPSG:3857/{z}/{y}/{x}", "imgUrl": "/webdemo/gis119wei/baselayer/2_1.png"},//0.MOI 18
+  {"name": "深色地圖", "url": "https://wmts.nlsc.gov.tw/wmts/EMAP2/default/EPSG:3857/{z}/{y}/{x}.png", "imgUrl": "/webdemo/gis119wei/baselayer/3_1.png"},//0.暗色 18
+  {"name": "衛星航照", "url": "https://wmts.nlsc.gov.tw/wmts/PHOTO2/default/EPSG:3857/{z}/{y}/{x}.png", "imgUrl": "/webdemo/gis119wei/baselayer/4_1.png"},//0.TGOS航照
+  {"name": "OSM", "url": "https://bot.mds.com.tw/webdemo/gisdata3/osm/{z}/{x}/{y}.png","imgUrl": "/webdemo/gis119wei/baselayer/5_1.png"},//0.OSM 21
+];
+function toggleBaselayer(a, obj) {
+  initbaselayer=parseInt(a);
+  let baselayermaxzoom=[18,20,29,20,21,19,19];
+  baselayer.setSource(new ol.source.XYZ({url:baselayerurl[a]['url'],crossOrigin:(Math.abs(initbaselayer-6)==1)?null:'anonymous',maxZoom:baselayermaxzoom[a]}));
+  document.body.style.backgroundColor=(a==3?'#000':'#99ccff');/*如果換成暗色底圖切黑色background，其他皆為藍色*/
+};
+
+function toggleBtnColor(){
+  
+}
+function createBaseLayer(){
+  let content = document.querySelector('#mapcontent');
+  for (let i=0;i<baselayerurl.length;i++){
+    let label = document.createElement('label');label.setAttribute('class','item');
+    label.innerHTML = `
+    <div class="mapdiv" onclick="toggleBaselayer(${i}, this)" style="width:75px">
+      <div class="imgbox" style="width:100%; height:100px;">
+        <img src="${baselayerurl[i]['imgUrl']}" style="width:100%;height:100%;">
+      </div>
+    </div>`;
+      // <div class="title" style="font-size:12px">${baselayerurl[i]['name']}</div>
+    content.append(label);
+    // 顯示該圖層文字
+    label.addEventListener('mouseenter', () => {
+      label.parentElement.nextElementSibling.style.visibility = 'visible';
+      label.parentElement.nextElementSibling.innerText = `${baselayerurl[i]['name']}`
+    });
+    label.addEventListener('mouseleave', () => {
+      label.parentElement.nextElementSibling.style.visibility = 'hidden';
+    });
+  }
+}
+createBaseLayer();
+toggleBaselayer(0);//初始化底圖
+/////////------------------底圖切換  END----------------------------------/////////////////
+
+/////////------------------右下快捷鍵按鈕  START----------------------------------/////////////////
+function legendBtn(checkif, layerName ,imgUrl, name, type, layerNumber){
+  if(checkif){
+    console.log(type)
+    let quickLayer = document.querySelector('.quickLayer');
+    if (type=='overlay'){
+      $(quickLayer).append(`
+        <div 
+          class="quickLayer-grid" 
+          id="layer-${layerName}" 
+          layername="${name}" 
+          oncontextmenu="legendShowSwitch(event, this, '${layerName}')" 
+          onclick="
+            overLayerCtl(false, ${layerNumber}); 
+            document.querySelector('#layer-${layerName}').remove(); 
+            $('#quickLayerTitle').css({ 'display': 'none' }); 
+            $('#overlay-${layerNumber}').prop('checked', false);"
+        >
+          <img src="${imgUrl}" style="width:100%;">
+        </div>`);
+    }else if(type=='weather'){
+      $(quickLayer).append(`
+        <div 
+          class="quickLayer-grid" 
+          id="layer-${layerName}"
+          layername="${name}" 
+          oncontextmenu="legendShowSwitch(event, this, '${layerName}')"
+          onclick="
+            weatherLayerCtl(false, ${layerNumber}); 
+            document.querySelector('#layer-${layerName}').remove(); 
+            $('#quickLayerTitle').css({ 'display': 'none' }); 
+            $('#weather-${layerNumber}').prop('checked', false);
+          "
+        >
+          <img src="${imgUrl}" style="width:100%;">
+        </div>`);
+    }else{
+      $(quickLayer).append(`
+        <div 
+          class="quickLayer-grid" 
+          id="layer-${layerName}" 
+          layername="${name}" 
+          oncontextmenu="legendShowSwitch(event, this, '${layerName}')"
+        >
+          <img src="${imgUrl}" style="width:100%;">
+        </div>`);
+    }
+  }else{
+    // delete btn、delete layer
+    document.querySelector(`#layer-${layerName}`).remove();
+  }
+}
+$('.quickLayer').mousemove(function (e) {
+  if( e.target.tagName.toLowerCase() === 'img' ){
+    $('#quickLayerTitle').empty()
+    $('#quickLayerTitle').append(`${e.target.parentElement.getAttribute('layername')}`);
+    $('#quickLayerTitle').css({ 'top': `${e.pageY-50}px`, 'left':`${e.pageX-150}px`, 'display':'block', 'z-index':10, 'background':'#000000d2','width':'150px','border-radius':'5px','padding':'5px 10px','color':'white','font-size':'22px','text-align':'center' });
+  }
+})
+$('.quickLayer').mouseout(function (e) {
+  $('#quickLayerTitle').css({ 'display': 'none' })
+})
+// 快速選單-圖層右鍵
+
+
+function legendShowSwitch(event, obj, layerName){
+  // console.log(event)
+  event.preventDefault();
+  let i = map.getLayers().getArray();
+  if (layerName.indexOf('dgdptyphoon')>=0){// 颱風相關
+    for (let ii=1; ii<=2; ii++) { 
+      for (let j=0; j<i.length; j++) {
+        if(i[j].get("name") && i[j].get("name")=='dgdptyphoon'+ii) {
+          if (i[j].getVisible()){i[j].setVisible(false); obj.children[0].style.filter = 'blur(1px) grayscale(1)';}
+          else{i[j].setVisible(true);obj.children[0].style.filter = 'blur(0px) grayscale(0)'}
+        }
+      }; 
+    };
+  }else{
+    for (let j=0; j<i.length; j++) {
+      if(i[j].get("name") && i[j].get("name")==layerName) {
+        if (i[j].getVisible()){i[j].setVisible(false); obj.children[0].style.filter = 'blur(1px) grayscale(1)';}
+        else{i[j].setVisible(true);obj.children[0].style.filter = 'blur(0px) grayscale(0)'}
+      }
+    }; 
+  }
+  
+}
+/////////------------------右下快捷鍵按鈕  END----------------------------------/////////////////
+
+// popup
+let divpop = document.getElementById('movepopup');
+let movepopup = new ol.Overlay({element:document.getElementById('movepopup')});
+map.addOverlay(movepopup);
+
+const container = document.getElementById('popup');
+const content = document.getElementById('popup-content');
+const closer = document.getElementById('popup-closer');
+const overlay = new ol.Overlay({
+  element: container,
+  autoPan: {animation: {duration: 250,},},
+});
+map.addOverlay(overlay);
+
+closer.onclick = function () {
+  overlay.setPosition(undefined);
+  closer.blur();
+  return false;
+};
+
+
+map.on('pointermove',function(evt){
+  let a=0;
+  // console.log(evt.pixel);
+  if(rightClickIo){ tmpCasePos = evt.coordinate; calsCoord();/*下框座標*/}//判斷是否取得位置，右鍵選單IO
+
+  let feature = this.forEachFeatureAtPixel(evt.pixel, function(feature,layer) {
+    switch (layer) {
+      case casepoint: a=5;break;case carpoint: a=6;break;
+      default:
+      if (layer && layer.get('name')) {
+        if(layer.get('name').indexOf('overlayer')>=0){ a=1;}
+        else if (layer.get('name').indexOf('emic')>=0){ a=2;}
+        else if (layer.get('name').indexOf('env')>=0){ a=3;}
+        else if (layer.get('name').indexOf('dgdp')>=0){ a=4;}
+      }
+    }
+    return feature;
+  });
+  if (a>0) {
+    this.getTargetElement().style.cursor = 'pointer';
+    divpop.style.display='block';
+    switch (a) {
+      case 1:
+        divpop.style.width='350px';
+        if (feature) {
+          let j=feature.get('popup');
+          if (j && j!=undefined) {divpop.innerHTML = j;movepopup.setPosition(evt.coordinate);}
+          else{divpop.style.display='none';}
+        }
+        break;
+      case 2:
+        divpop.style.width='150px';
+        if (feature) {
+          let j=feature.get('poup') || feature.get('_name');
+          if (j) {divpop.innerHTML = j;movepopup.setPosition(evt.coordinate);} 
+          else { divpop.style.display='none'; };
+        } else {
+          divpop.style.display='none';
+        };
+        break;
+      case 3:
+        // console.log(feature);
+        divpop.style.width=`${feature.get('popupWidth')}px`;
+        if (feature) {
+          let j=feature.get('popupContent');
+          if (j) {divpop.innerHTML = j;movepopup.setPosition(evt.coordinate);}
+        }
+        break;
+      case 4:
+        divpop.style.width='300px';
+        if (feature) {
+          let j=feature.get('description') || feature.get('name') || feature.get('_name') || feature.get('layer');
+          if (j) {
+            divpop.innerHTML='<div style="text-align:left;font-family:微軟正黑體;padding-left:5px;background: white;border-radius: 5px;padding: 5px;box-shadow: 2px 2px 2px #000000ed;font-weight: bolder;">'+j+'</div>';
+            movepopup.setPosition(evt.coordinate);
+          } else { divpop.style.display='none'; };
+        } else {
+          divpop.style.display='none';
+        };
+        break;
+      case 5:
+        divpop.style.width='300px';
+        divpop.innerHTML=`<div class="popupTable"><table><thead><tr><th colspan="2">${feature.get('csno')}</th></tr></thead><tbody><tr><td style="width:40px;" class="td1">${feature.get('dept')}</td><td style="font-size:20px;" >${feature.get('nt_name')}  ${feature.get('nt_tel')}</td></tr><tr><td class="td1 td2">${feature.get('dis_code_case')}</td><td class="td2">${feature.get('dis_code')}</td></tr><tr><td colspan="2">${feature.get('cs_place')}</td></tr><tr><td colspan="2" class="td2">${feature.get('memo')==null?'無':feature.get('memo')}</td></tr><tr><td class="td1">時間</td><td style="text-align:center">${new Date(feature.get('in_time')).toLocaleString()}</td></tr></tbody></table></div>`;
+        movepopup.setPosition(evt.coordinate);
+        break;
+      case 6:
+        divpop.style.width='275px';
+        divpop.innerHTML=`<div class="popupTable" style="width:100%"><table style="width:100%"><thead><tr><th colspan="2">${(feature.get('csno')||'---')}</th></tr></thead><tbody><tr><td style="width:60px;" class="td1">車號</td><td>${feature.get('car_no')}</td></tr><tr><td class="td1 td2">呼號</td><td class="td2">${feature.get('call_no')}</td></tr><tr><td class="td1">狀態</td><td>${(feature.get('csno')?'處理中':'待命中')}</td></tr><tr><td class="td1 td2">時間</td><td style="font-size:18px;text-align:center;" class="td2">${new Date(feature.get('msg_date')).toLocaleString()}</td></tr></tbody></table></div>`;
+        movepopup.setPosition(evt.coordinate);
+        break;
+    };
+  } else {
+    this.getTargetElement().style.cursor = '';
+    divpop.style.display='none';
+  }
+});
+
+// cctv 虛線
+let cctvDashLine = new ol.layer.Vector({source:new ol.source.Vector(),renderMode:'vector',declutter:true, zIndex: 12, style: [new ol.style.Style({ stroke: new ol.style.Stroke({ width: 5, color: '#000', lineDash:   [5, 8] }) }),new ol.style.Style({stroke: new ol.style.Stroke({ width: 3, color: '#ff0', lineDash: [5, 8] })})]});
+map.addLayer(cctvDashLine);
+
+let cctvFeatureCoord;let cctvBoxCoord;
+map.on('moveend',function(){
+  if(cctvFeatureCoord!=undefined){cctvLink(cctvFeatureCoord);}
+})
+
+let carLink2CaseId;//紀錄setinterval Id
+map.on('singleclick',function(evt){
+  hideMenu();
+
+  let a = 0;//判斷第幾個layer
+  let feature = this.forEachFeatureAtPixel(evt.pixel, function(feature,layer) {
+    switch (layer) {
+      case carpoint:a=1;break;case casepoint:a=2;break;
+      default:
+      if (layer && layer.get('name')) {
+        if (layer.get('name').indexOf('emic')>=0){a=3;}
+        if (layer.get('name').indexOf('cctv')>=0){a=4;}
+      }
+    }
+    return feature;
+  });
+  if (a>0) {
+    this.getTargetElement().style.cursor = 'pointer';
+    switch (a) {
+      case 1://車輛連線
+        clearInterval(carLink2CaseId);
+        carLink2Case(feature);
+        carLink2CaseId =  setInterval(() => {carLink2Case(feature)}, 2000);
+        break;
+      case 2://案件連線
+        // if(!document.getElementById('mds-list').checked){//收合時無法選擇
+        caseFeatureCoord = feature;
+        caseLink(feature);break;
+        // }
+        break;
+      case 3://emic顯示popup
+        if (feature) {
+          let j=feature.get('description') || feature.get('name') || feature.get('_name') || feature.get('layer');
+          if (j) {
+            content.innerHTML = j;
+            overlay.setPosition(evt.coordinate);
+          } else { divpop.style.display='none'; };
+        } else {
+          overlay.setPosition(undefined);;
+        };
+        break;
+      case 4://cctv側邊欄呼叫
+        cctvFeatureCoord=feature;
+        cctvLink(feature)
+        document.querySelector('.cctvBox').style.left = '0px';
+        document.querySelector('.cctvBox .title').innerHTML = feature.get('name');
+        document.querySelector('.cctvBox .content').innerHTML = feature.get('stream');
+        break;
+    };
+  } else {
+    overlay.setPosition(undefined);
+    carlink2case.getSource().clear();//刪除車輛案件連線
+    clearInterval(carLink2CaseId);
+    if(caseFeatureCoord!= undefined){//刪除案件列表連線
+      casepointsrc.getFeatures().forEach(function(i) {$(`#${i.getId()}`).css({'background':'','font-weight':'','color':'white'});})
+      caseDashLine.getSource().clear();
+      caseFeatureCoord = undefined;
+    }
+  }
+})
+
+
+/////////------------------右鍵選單  START----------------------------------/////////////////
+// document.onclick = hideMenu;
+// document.querySelector('#map').oncontextmenu = rightClick;
+function hideMenu() {
+  document.getElementById("contextMenu").style.display = "none"
+}
+function rightClick(e) {
+  e.preventDefault();
+  rightClickIo=false;
+  if (document.getElementById("contextMenu").style.display == "block"){
+    rightClickIo=true;
+    hideMenu();
+  }
+  else {
+    let menu = document.getElementById("contextMenu");
+    menu.style.display = 'block';
+    menu.style.left = e.pageX + "px";
+    menu.style.top = e.pageY + "px";
+  }
+}
+
+// zoom in/out
+function setZoomLevel(type){
+  if(type=='in'){
+    map.getView().animate({
+      zoom: Math.round(map.getView().getZoom())+1,
+      duration: 300,
+    });
+  }else if(type=='out'){
+    map.getView().animate({
+      zoom: Math.round(map.getView().getZoom())-1,
+      duration: 300,
+    });
+  }
+}
+
+// 座標對照
+let coordBoxIo = true;
+function switchCoord(){
+  if(coordBoxIo){document.querySelector('.coord').style.bottom = '10px';coordBoxIo = false;}
+  else{document.querySelector('.coord').style.bottom = '-100px';coordBoxIo = true;}
+  hideMenu();
+}
+
+// 清除點位
+function clearCasePos(){
+  selectedLoc.getSource().clear();
+  rightClickIo=true;
+  hideMenu();
+}
+
+// 案發點重新定位
+// let caseLonPos;let caseLatPos;
+let tmpCasePos;
+let rightClickIo=true;
+function reLocateCasePos(){
+  selectedLoc.getSource().clear();
+  // let transfer= new ol.proj.transform(tmpCasePos,'EPSG:3857',document.getElementById('diffCoord').value);
+  // document.getElementById('calsCoordResult').innerText= `${transfer[0].toFixed(5)}, ${transfer[1].toFixed(5)}`;//下方框座標
+  calsCoord();
+  selectedLoc.getSource().addFeature(new ol.Feature({
+    geometry:new ol.geom.Point(tmpCasePos),
+  }))
+  rightClickIo=false;
+  hideMenu();
+}
+
+/////////------------------右鍵選單  END----------------------------------/////////////////
+
+function cctvLink(feature){
+  // box positon
+  let cctvBox=document.querySelector('.cctvBox .content');
+  let centerTop = cctvBox.clientTop + cctvBox.offsetHeight/2;
+  let centerLeft = cctvBox.clientLeft + cctvBox.offsetWidth/2;
+  let boxcenter = map.getCoordinateFromPixel([centerTop, centerLeft]);
+  cctvDashLine.getSource().clear();
+  cctvDashLine.getSource().addFeature(new ol.Feature({geometry:new ol.geom.LineString([boxcenter, feature.getGeometry().getCoordinates()])})); 
+}
+function cctvBoxCtl(checkif){
+  if (checkif){
+    document.querySelector('.cctvBox').style.left='-400px';
+    cctvDashLine.getSource().clear();
+    cctvFeatureCoord=undefined;
+  }
+}
+
+
+/////////------------------選單  Start----------------------------------/////////////////
+// function toggleSideBar(){
+//   if (document.querySelector('#sideBarChk').checked){
+//     $('.sidebar').css({'left':'-300px'});
+//     $('.sidebar').siblings().css( "rotate;", "180deg" );
+//   }else{
+//     $('.sidebar').css({'left':'10px'});
+//     $('.sidebar').siblings().css( "rotate;", "0deg" );
+//   }
+// }
+
+
+/////////------------------案件清單  Start----------------------------------/////////////////
+let caseList = [];
+function caselist() {
+  let tbody = document.querySelector('#caseListTable tbody'); 
+  let newCaseList = [];
+  casepointsrc.getFeatures().forEach(function(i) {
+    if (!(caseList.includes(i.getId()))){
+      let row = tbody.insertRow();
+      row.setAttribute('onclick','caseLocMove('+i.getId()+')');
+      row.setAttribute('id', `${i.getId('dis_code')}`);
+      row.setAttribute('casetype', `${i.get('dis_code').split('_')[0]}`);
+      row.insertCell(0).innerHTML=`<div><b>${i.getId()}</b></div><div>【${i.get('dis_code_case')}─${i.get('dis_code').split('_')[1]}】<br>${i.get('nt_name')}=${i.get('nt_tel')}<br>${i.get('cs_place')}<br>${new Date(i.get('in_time')).toLocaleString()}`;
+      caseList.push(i.getId());
+    }
+    newCaseList.push(i.getId());
+  });
+  checkCaseList(newCaseList);
+  // filterCaseType();
+  // searchKeyWord();
+};
+function checkCaseList(newCaseList){
+  let difference = caseList.filter(x => !newCaseList.includes(x));
+  if (difference.length>0){
+    for(let i=0;i<difference.length;i++){
+      $(`#${difference[i]}`).remove();
+      let index = caseList.indexOf(difference[i]);
+      if (index !== -1) {caseList.splice(index, 1);}//remove 原本array
+    }
+  }
+}
+
+/////////------------------即時案件  Start----------------------------------/////////////////
+function caseLocation(){
+  // casepoint.setVisible(document.getElementById('btnrealtime1').checked);
+  // if (document.getElementById('btnrealtime1').checked) {
+    $.getJSON('https://gis.fdkc.gov.tw/rescue/getnowcase/json?getalls=1&hr=24',function(f) {
+      if (f.io==1) {
+        var csno=f.csno;
+        casepointsrc.getFeatures().forEach(function(i) {
+          let j=csno.indexOf(i.getId());
+          if (j<0) {
+            casepointsrc.removeFeature(i);
+          } else {
+            i.setProperties({csno:f.csno[j],dis_code:f.dis_code[j],in_time:f.in_time[j],dept:f.dept[j],nt_name:f.nt_name[j],nt_tel:f.nt_tel[j],cs_place:f.cs_place[j],memo:f.memo[j],dis_code_case:f.dis_code_case[j],show:true});
+            i.getGeometry().setCoordinates(ol.proj.transform([f.x[j],f.y[j]],'EPSG:4326','EPSG:3857'));
+          };
+        });
+        for (let ii=0; ii<csno.length; ii++) {
+          if (!casepointsrc.getFeatureById(csno[ii])) {
+            let jj=new ol.Feature({type:'Point',geometry:new ol.geom.Point(ol.proj.transform([f.x[ii],f.y[ii]],'EPSG:4326','EPSG:3857')),csno:f.csno[ii],dis_code:f.dis_code[ii],in_time:f.in_time[ii],dept:f.dept[ii],nt_name:f.nt_name[ii],nt_tel:f.nt_tel[ii],cs_place:f.cs_place[ii],memo:f.memo[ii],dis_code_case:f.dis_code_case[ii],show:true});
+            jj.setId(parseInt(csno[ii]));
+            casepointsrc.addFeature(jj);
+          };
+        };
+      };
+      caselist()
+      setTimeout(caseLocation,5000);
+    });
+  // };
+};
+
+/////////------------------車輛監控  Start----------------------------------/////////////////
+function carLocation(){
+  // carpoint.setVisible(document.getElementById('btnrealtime2').checked);
+  // if (document.getElementById('btnrealtime2').checked) {
+    $.getJSON('https://gis.fdkc.gov.tw/rescue/getnowcar/json?getalls=1',function(f) {
+      if (f.io==1) {
+        var imei=f.imei;
+        carpointsrc.getFeatures().forEach(function(i) {
+          let j=imei.indexOf(i.getId());
+          if (j<0) {
+            carpointsrc.removeFeature(i);
+          } else {
+            i.setProperties({csno:f.csno[j],car_no:f.car_no[j],call_no:f.call_no[j],dir0:f.dir0[j],msg_date:f.msg_date[j],show:true});
+            i.getGeometry().setCoordinates(ol.proj.transform([f.x[j],f.y[j]],'EPSG:4326','EPSG:3857'));
+          };
+        });
+        for (let ii=0; ii<imei.length; ii++) {
+          if (!carpointsrc.getFeatureById(imei[ii])) {
+            let jj=new ol.Feature({type:'Point',geometry:new ol.geom.Point(ol.proj.transform([f.x[ii],f.y[ii]],'EPSG:4326','EPSG:3857')),csno:f.csno[ii],car_no:f.car_no[ii],call_no:f.call_no[ii],dir0:f.dir0[ii],msg_date:f.msg_date[ii],show:true});
+            jj.setId(imei[ii]);
+            carpointsrc.addFeature(jj);
+          };
+        };
+      };
+      setTimeout(carLocation,5000);
+    });
+  // };
+};
+caseLocation(); 
+carLocation();
+
+/////////------------------案件與車子連線  Start----------------------------------/////////////////
+function carLink2Case(feature){
+  carlink2case.getSource().clear();
+  let featureLoc = feature.getGeometry().getCoordinates();
+  if(casepointsrc.getFeatureById(`${feature.get('csno')}`)==null) return ;
+  let caseLoc = casepointsrc.getFeatureById(`${feature.get('csno')}`).getGeometry().getCoordinates()
+  carlink2case.getSource().clear();
+  carlink2case.getSource().addFeature(new ol.Feature({geometry:new ol.geom.LineString([featureLoc, caseLoc])})); 
+}
+
+
+
+/////////------------------案件連線  Start----------------------------------/////////////////
+let caseFeatureCoord;
+map.on('moveend',function(){if(caseFeatureCoord!=undefined){caseLink(caseFeatureCoord);}})
+
+let scrollIo = false;
+document.querySelector('.tableBox').addEventListener("scroll", (event) => {
+  if (scrollIo){
+    casepointsrc.getFeatures().forEach(function(i) {$(`#${i.getId()}`).css({'background':'','font-weight':'','color':'white'});})
+    caseDashLine.getSource().clear();
+    caseFeatureCoord = undefined;
+  }
+});
+function caseLink(feature){
+  scrollIo = false;
+  // box positon
+  let caseRow=document.getElementById(`${feature.getId()}`);
+  caseRow.scrollIntoView(false);
+  let centerTop = $(caseRow).offset()['top'] - $('.ol-viewport').offset()['top'] + $(caseRow).height() / 2;
+  let centerLeft = $(caseRow).offset()['left'] - $('.ol-viewport').offset()['left'] + $(caseRow).width() / 2;
+
+  let boxcenter = map.getCoordinateFromPixel([centerLeft, centerTop]);
+  caseDashLine.getSource().clear();
+  caseDashLine.getSource().addFeature(new ol.Feature({geometry:new ol.geom.LineString([boxcenter, feature.getGeometry().getCoordinates()])})); 
+  
+  casepointsrc.getFeatures().forEach(function(i) {$(`#${i.getId()}`).css({'background':'','font-weight':'','color':'white'});})
+  // document.getElementById(`${feature.getId()}`).style.background = '#ff8700';
+  $(`#${feature.getId()}`).css({'background':'#ff8700','font-weight':'bolder','color':'black'});
+
+  setTimeout(() => {scrollIo = true}, 500);//因scrollIntoView會一起觸發，所以新增IO和延遲
+}
+function listCollapse(){
+  if(document.getElementById('mds-list').checked){
+    casepointsrc.getFeatures().forEach(function(i) {$(`#${i.getId()}`).css({'background':'','font-weight':'','color':'white'});})
+    caseDashLine.getSource().clear();
+    caseFeatureCoord = undefined;
+  }
+}
+// 案件連線 end
+
+/////////------------------移動案件位置  Start----------------------------------/////////////////
+function caseLocMove(i){
+  map.getView().animate({center:casepointsrc.getFeatureById(i).getGeometry().getCoordinates(),zoom: 16});
+}
+
+/////////------------------案件列表 - 案類篩選和搜尋框  Start----------------------------------/////////////////
+let filterCaseList=[], firstFilter=false;
+//篩選案件清單
+function searchKeyWord() {
+  let input, filter, table, tr, td, i, txtValue;
+  input = document.getElementById("filterCase");
+  filter = input.value.toUpperCase();
+  table = document.getElementById("caseListTable");
+  tr = table.getElementsByTagName("tr");
+  for (i = 0; i < tr.length; i++) {
+    td = tr[i].getElementsByTagName("td")[0];
+    if (td) {
+      txtValue = td.textContent || td.innerText;
+      if (txtValue.toUpperCase().indexOf(filter) > -1) {
+        console.log('1')
+        tr[i].style.display = "";
+        filterCaseList.push(tr[i].getAttribute('id'));
+      } else {
+        tr[i].style.display = "none";
+      }
+    }
+  }
+}
+function filterCaseType(){
+  let table, tr, casetype;
+  table = document.getElementById("caseListTable");
+  tr = table.getElementsByTagName("tr");
+  if(caseType.length === 0 && document.getElementById("filterCase")==''){
+    for (i = 0; i < tr.length; i++) {
+      tr[i].style.display = "";
+    }
+  }else{
+    for (i = 0; i < tr.length; i++) {
+      trcasetype = tr[i].getAttribute('casetype');
+      if (caseType.includes(trcasetype)) {
+        if (tr[i].style.display !='none'){
+          tr[i].style.display = "";
+        }
+      } else {
+        tr[i].style.display = "none";
+      }
+    }
+  }
+}
+
+let switchIo=true
+function switchCaseType(){
+  if(switchIo){$('.caseTypeList').css({'display':'flex'});switchIo=false;}
+  else{$('.caseTypeList').css({'display':'none'});switchIo=true;}
+}
+//輸入框篩選
+document.querySelector('#filterCase').addEventListener('input',(e)=>{
+  setTimeout(() => {
+    filterCaseList=[];// init search case
+    // searchKeyWord();
+    filterCaseType();
+  }, 1000);
+})
+// 增加case list監聽
+let caseType=[];
+document.querySelector('.caseTypeList').addEventListener('click',function(e){
+  if( e.target.tagName.toLowerCase() === 'label'){
+    console.log(e.target.textContent, e.target.children[0].checked)
+    if(!e.target.children[0].checked){
+      caseType.push(e.target.textContent);
+    }else{
+      let index = caseType.indexOf(e.target.textContent);
+      if (index !== -1) {
+        caseType.splice(index, 1);
+      }
+    }
+  }
+  searchKeyWord();
+  filterCaseType();
+  // TODO:處理冒泡事件
+},false)
+document.querySelector('.caseTypeList input').addEventListener('change',function(e){
+  e.stopPropagation();
+})
+/////////------------------案件列表 - 案類篩選和搜尋框  End----------------------------------/////////////////
+
+</script>
+</body>
+</html>
